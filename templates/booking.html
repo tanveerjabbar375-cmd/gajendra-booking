@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Gajendra Two-Wheeler Booking</title>
+<style>
+body {background:white;color:black;font-size:14px;font-family:Arial;}
+button {background:#F52727;color:white;border:none;padding:10px;}
+</style>
+</head>
+<body>
+
+<h2>Gajendra Two-Wheeler Booking</h2>
+
+<form method="POST">
+Name:<br>
+<input type="text" name="name" required><br><br>
+
+Model:<br>
+<select name="model">
+<option>Activa110</option>
+  <option>Activa 125</option>
+  <option>Dio 110</option>
+  <option>Dio 125</option>
+  <option>Livo Drum</option>
+  <option>Livo Disk</option>
+  <option>Shine 100</option>
+  <option>Shine 125</option>
+  <option>SP 125</option>
+  <option>SP 160</option>
+  <option>Unicorn</option>
+  <option>CB Hornet 125</option>
+  <option>Hornet</option>
+  <option>Nx 200</option>
+
+</select><br><br>
+
+Phone:<br>
+<input type="text" name="phone" required><br><br>
+
+Location:<br>
+<select name="location">
+<option>Ballari</option>
+  <option>Bengalore</option>
+  <option>Belgaum</option>
+  <option>Bharamasagara</option>
+  <option>Bidar</option>
+  <option>Bijapur</option>
+  <option>Challakere</option>
+  <option>Chikmagalur</option>
+  <option>Chitradurga</option>
+  <option>Davanagere</option>
+  <option>Dharwad</option>
+  <option>Dandeli</option>
+  <option>Hasan</option>
+  <option>Hiriyur</option>
+  <option>Hospet</option>
+  <option>Hosadurga</option>
+  <option>Hubli</option>
+  <option>Kalaburagi</option>
+  <option>Mangakuru</option>
+  <option>Mysore</option>
+  <option>Nayakanahatty</option>
+  <option>Raichur</option>
+  <option>Ranebennur</option>
+  <option>Shimoga</option>
+  <option>Tumkur</option>
+  <option>Tarikere</option>
+  <option>Udupi</option>
+</select><br><br>
+
+<button type="submit">Book Now</button>
+</form>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <script>alert("Booked Successfully!")</script>
+  {% endif %}
+{% endwith %}
+
+<hr>
+<h3>Sale Offers</h3>
+<div style="background:#eee;padding:10px;">
+🔥 Festive Offer - 10% Discount <br>
+🎁 Free Helmet on Booking
+</div>
+
+<hr>
+<h3>Our Achievements & Blogs</h3>
+{% for blog in blogs %}
+<h4>{{ blog.title }}</h4>
+<p>{{ blog.content }}</p>
+{% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+<html>
+<head>
+<style>
+body {background:white;color:black;font-size:12px;}
+button {background:#F52727;color:white;}
+</style>
+</head>
+<body>
+
+<h2>Dashboard</h2>
+
+<h3>Booking List</h3>
+<table border="1">
+<tr><th>Name</th><th>Model</th><th>Phone</th><th>Location</th><th>Date</th></tr>
+{% for b in bookings %}
+<tr>
+<td>{{b.name}}</td>
+<td>{{b.model}}</td>
+<td>{{b.phone}}</td>
+<td>{{b.location}}</td>
+<td>{{b.date}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<br>
+<a href="/export/excel"><button>Export Excel</button></a>
+<a href="/export/pdf"><button>Export PDF</button></a>
+<a href="/export/word"><button>Export Word</button></a>
+
+<hr>
+<h3>Add Blog</h3>
+<form method="POST" action="/add_blog">
+Title:<br>
+<input type="text" name="title"><br>
+Content:<br>
+<textarea name="content"></textarea><br><br>
+<button type="submit">Add Blog</button>
+</form>
+
+<h3>Delete Blog</h3>
+{% for blog in blogs %}
+<p>{{blog.title}} <a href="/delete_blog/{{blog.id}}"><button>Delete</button></a></p>
+{% endfor %}
+
+</body>
+</html>

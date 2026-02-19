@@ -1,0 +1,128 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask_sqlalchemy import SQLAlchemy
+import pandas as pd
+from datetime import datetime
+import os
+from docx import Document
+from reportlab.pdfgen import canvas
+
+app = Flask(__name__)
+app.secret_key = "secretkey"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
+db = SQLAlchemy(app)
+
+# Default Admin Credentials
+ADMIN_USER = "Tanveer"
+ADMIN_PASS = "998636"
+
+# ---------------- DATABASE MODELS ----------------
+
+class Booking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    model = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    location = db.Column(db.String(100))
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Blog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
+    content = db.Column(db.Text)
+
+# ---------------- BOOKING PAGE ----------------
+
+@app.route('/', methods=['GET', 'POST'])
+def booking():
+    if request.method == 'POST':
+        data = Booking(
+            name=request.form['name'],
+            model=request.form['model'],
+            phone=request.form['phone'],
+            location=request.form['location']
+        )
+        db.session.add(data)
+        db.session.commit()
+        flash("Booked Successfully!")
+        return redirect(url_for('booking'))
+
+    blogs = Blog.query.all()
+    return render_template("booking.html", blogs=blogs)
+
+# ---------------- ADMIN LOGIN ----------------
+
+@app.route('/admin', methods=['GET','POST'])
+def admin():
+    global ADMIN_USER, ADMIN_PASS
+    if request.method == 'POST':
+        if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
+            return redirect(url_for('dashboard'))
+        else:
+            flash("Invalid Credentials")
+    return render_template("admin_login.html")
+
+# ---------------- DASHBOARD ----------------
+
+@app.route('/dashboard', methods=['GET','POST'])
+def dashboard():
+    bookings = Booking.query.all()
+    blogs = Blog.query.all()
+    return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs)
+
+# ---------------- BLOG ADD ----------------
+
+@app.route('/add_blog', methods=['POST'])
+def add_blog():
+    blog = Blog(title=request.form['title'], content=request.form['content'])
+    db.session.add(blog)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete_blog/<int:id>')
+def delete_blog(id):
+    blog = Blog.query.get(id)
+    db.session.delete(blog)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+# ---------------- EXPORT ----------------
+
+@app.route('/export/<format>')
+def export(format):
+    bookings = Booking.query.all()
+    data = []
+    for b in bookings:
+        data.append([b.name, b.model, b.phone, b.location, b.date])
+
+    df = pd.DataFrame(data, columns=["Name","Model","Phone","Location","Date"])
+
+    if format == "excel":
+        file = "bookings.xlsx"
+        df.to_excel(file)
+        return send_file(file, as_attachment=True)
+
+    if format == "word":
+        file = "bookings.docx"
+        doc = Document()
+        doc.add_heading("Booking List")
+        for row in data:
+            doc.add_paragraph(str(row))
+        doc.save(file)
+        return send_file(file, as_attachment=True)
+
+    if format == "pdf":
+        file = "bookings.pdf"
+        c = canvas.Canvas(file)
+        y = 800
+        for row in data:
+            c.drawString(30,y,str(row))
+            y -= 20
+        c.save()
+        return send_file(file, as_attachment=True)
+
+# ---------------- RUN ----------------
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

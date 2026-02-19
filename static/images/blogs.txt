@@ -1,0 +1,1 @@
+<img src="{{ url_for('static', filename='images/blogs/blog1.jpg') }}" alt="Blog Image">
