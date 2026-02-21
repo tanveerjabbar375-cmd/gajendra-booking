@@ -65,9 +65,23 @@ def admin():
 
 @app.route('/dashboard', methods=['GET','POST'])
 def dashboard():
-    bookings = Booking.query.all()
+
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+
+    query = Booking.query
+
+    if from_date and to_date:
+        from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
+        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
+        query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+
+    bookings = query.all()
     blogs = Blog.query.all()
-    return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs)
+
+    return render_template("admin_dashboard.html",
+                           bookings=bookings,
+                           blogs=blogs)
 
 # ---------------- BLOG ADD ----------------
 
@@ -89,7 +103,19 @@ def delete_blog(id):
 
 @app.route('/export/<format>')
 def export(format):
-    bookings = Booking.query.all()
+
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+
+    query = Booking.query
+
+    if from_date and to_date:
+        from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
+        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
+        query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+
+    bookings = query.all()
+
     data = []
     for b in bookings:
         data.append([b.name, b.model, b.phone, b.location, b.date])
@@ -98,7 +124,7 @@ def export(format):
 
     if format == "excel":
         file = "bookings.xlsx"
-        df.to_excel(file)
+        df.to_excel(file, index=False)
         return send_file(file, as_attachment=True)
 
     if format == "word":
