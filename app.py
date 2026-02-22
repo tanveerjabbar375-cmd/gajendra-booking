@@ -5,8 +5,13 @@ from datetime import datetime
 import os
 from docx import Document
 from reportlab.pdfgen import canvas
+from flask import session
+from functools import wraps
 
 app = Flask(__name__)
+from datetime import timedelta
+
+app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
 db = SQLAlchemy(app)
@@ -29,6 +34,15 @@ class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))
     content = db.Column(db.Text)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session:
+            flash("Please login first")
+            return redirect(url_for('admin'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # ---------------- BOOKING PAGE ----------------
 
@@ -56,6 +70,9 @@ def admin():
     global ADMIN_USER, ADMIN_PASS
     if request.method == 'POST':
         if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
+            session.permanent = True
+            session['admin_logged_in'] = True
+            session['last_activity'] = datetime.utcnow().timestamp()
             return redirect(url_for('dashboard'))
         else:
             flash("Invalid Credentials")
@@ -64,7 +81,19 @@ def admin():
 # ---------------- DASHBOARD ----------------
 
 @app.route('/dashboard', methods=['GET','POST'])
+@login_required
 def dashboard():
+
+ # Auto logout after 5 minutes inactivity
+    now = datetime.utcnow().timestamp()
+
+    if 'last_activity' in session:
+        if now - session['last_activity'] > 300:
+            session.clear()
+            flash("Session expired. Please login again.")
+            return redirect(url_for('admin'))
+
+    session['last_activity'] = now
 
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
@@ -86,6 +115,7 @@ def dashboard():
 # ---------------- BLOG ADD ----------------
 
 @app.route('/add_blog', methods=['POST'])
+@login_required
 def add_blog():
     blog = Blog(title=request.form['title'], content=request.form['content'])
     db.session.add(blog)
@@ -93,6 +123,7 @@ def add_blog():
     return redirect(url_for('dashboard'))
 
 @app.route('/delete_blog/<int:id>')
+@login_required
 def delete_blog(id):
     blog = Blog.query.get(id)
     db.session.delete(blog)
@@ -145,6 +176,15 @@ def export(format):
             y -= 20
         c.save()
         return send_file(file, as_attachment=True)
+
+# ---------------- LOGOUT ----------------
+
+@app.route('/logout')
+@login_required
+def logout():
+    session.clear()
+    flash("Logged out successfully")
+    return redirect(url_for('admin'))
 
 # ---------------- RUN ----------------
 
