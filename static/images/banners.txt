@@ -2,8 +2,8 @@
   <div class="carousel-inner">
     {% for banner in banners %}
       <div class="carousel-item {% if loop.first %}active{% endif %}">
-        <img src="{{ url_for('static', filename='images/banners/' + banner) }}" 
-             class="d-block w-100" style="height:300px; object-fit:cover;">
+        <img src="{{ url_for('static', filename='images/' + banner) }}" 
+     class="d-block w-100" style="height:auto; max-height:500px; object-fit:contain;">
       </div>
     {% endfor %}
   </div>
