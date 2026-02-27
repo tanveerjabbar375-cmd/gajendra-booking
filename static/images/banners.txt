@@ -1,1 +1,16 @@
-<img src="{{ url_for('static', filename='images/banners/sale1.jpg') }}" alt="Sale Banner">
+<div id="offerCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    {% for banner in banners %}
+      <div class="carousel-item {% if loop.first %}active{% endif %}">
+        <img src="{{ url_for('static', filename='images/banners/' + banner) }}" 
+             class="d-block w-100" style="height:300px; object-fit:cover;">
+      </div>
+    {% endfor %}
+  </div>
+  <button class="carousel-control-prev" type="button" data-bs-target="#offerCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#offerCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+  </button>
+</div>

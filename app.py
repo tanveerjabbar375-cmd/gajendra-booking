@@ -60,8 +60,16 @@ def booking():
         flash("Booked Successfully!")
         return redirect(url_for('booking'))
 
+    # Blogs fetch
     blogs = Blog.query.all()
-    return render_template("booking.html", blogs=blogs)
+
+    # Dynamic banners from static/images folder
+    banner_folder = os.path.join(app.static_folder, "images")
+    banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
+    banners.sort()  # optional: alphabetically
+
+    # Pass banners to template
+    return render_template("booking.html", blogs=blogs, banners=banners)
 
 # ---------------- ADMIN LOGIN ----------------
 
