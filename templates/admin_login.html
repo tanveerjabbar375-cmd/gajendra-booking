@@ -16,6 +16,14 @@
 <body>
 
 <div class="login-box">
+{% if session.get('admin_logged_in') %}
+<a href="{{ url_for('logout') }}" 
+       style="padding:8px 15px; background:red; color:white; 
+       text-decoration:none; border-radius:5px; float:right;">
+       Logout
+    </a>
+    {% endif %}
+
     <h3>Admin Login</h3>
 
     {% with messages = get_flashed_messages() %}
