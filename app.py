@@ -123,22 +123,24 @@ def add_vehicle():
     category = request.form['category']
     price = int(request.form['price'])
     badge = request.form.get('badge') or None
+    image_files = request.files.getlist('images')  # get multiple images
 
     vehicle = Vehicle(name=name, category=category, price=price, badge=badge)
     db.session.add(vehicle)
-    db.session.commit()
+    db.session.commit()  # commit to get vehicle.id
 
-    images = request.files.getlist('images')  # multiple images
     upload_path = os.path.join(app.static_folder, 'uploads')
     os.makedirs(upload_path, exist_ok=True)
 
-    for img in images:
-        if img and img.filename:
-            filename = img.filename
-            img.save(os.path.join(upload_path, filename))
-            db.session.add(VehicleImage(vehicle_id=vehicle.id, filename=filename))
-    db.session.commit()
+    for image_file in image_files:
+        if image_file:
+            filename = f"{vehicle.id}_{image_file.filename}"
+            image_file.save(os.path.join(upload_path, filename))
+            # Save each image in VehicleImage table
+            img = VehicleImage(vehicle_id=vehicle.id, filename=filename)
+            db.session.add(img)
 
+    db.session.commit()
     flash("Vehicle added successfully!")
     return redirect(url_for('dashboard'))
 
