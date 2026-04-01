@@ -1,15 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-from datetime import datetime, timedelta
 import os
-from docx import Document
-from reportlab.pdfgen import canvas
+from datetime import datetime, timedelta
 from functools import wraps
 
 app = Flask(__name__)
-app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
+app.permanent_session_lifetime = timedelta(minutes=5)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
 db = SQLAlchemy(app)
 
@@ -67,21 +64,23 @@ def booking():
         )
         db.session.add(booking)
         db.session.commit()
-        flash("Booking Successful! Our executive will call you soon.")
+        flash("Booked Successfully! Our executive will call you soon")
         return redirect(url_for('booking'))
 
     blogs = Blog.query.all()
-    banner_folder = os.path.join(app.static_folder, "images")
-    banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
-    banners.sort()
     vehicles = Vehicle.query.all()
+    banner_folder = os.path.join(app.static_folder, "images")
+    banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg",".png",".jpeg",".webp"))]
+    banners.sort()
+
     return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
 
 # ---------------- ADMIN LOGIN ----------------
+ADMIN_USER = "Tanveer"
+ADMIN_PASS = "998636"
+
 @app.route('/admin', methods=['GET','POST'])
 def admin():
-    ADMIN_USER = "Tanveer"
-    ADMIN_PASS = "998636"
     if request.method == 'POST':
         if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
             session.permanent = True
@@ -105,7 +104,6 @@ def dashboard():
 
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
-
     query = Booking.query
     if from_date and to_date:
         from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
@@ -117,25 +115,7 @@ def dashboard():
     vehicles = Vehicle.query.all()
     return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs, vehicles=vehicles)
 
-# ---------------- BLOG MANAGEMENT ----------------
-@app.route('/add_blog', methods=['POST'])
-@login_required
-def add_blog():
-    blog = Blog(title=request.form['title'], content=request.form['content'])
-    db.session.add(blog)
-    db.session.commit()
-    return redirect(url_for('dashboard'))
-
-@app.route('/delete_blog/<int:id>')
-@login_required
-def delete_blog(id):
-    blog = Blog.query.get(id)
-    if blog:
-        db.session.delete(blog)
-        db.session.commit()
-    return redirect(url_for('dashboard'))
-
-# ---------------- VEHICLE MANAGEMENT ----------------
+# ---------------- VEHICLE ADD ----------------
 @app.route('/add_vehicle', methods=['POST'])
 @login_required
 def add_vehicle():
@@ -148,7 +128,7 @@ def add_vehicle():
     db.session.add(vehicle)
     db.session.commit()
 
-    images = request.files.getlist('images')
+    images = request.files.getlist('images')  # multiple images
     upload_path = os.path.join(app.static_folder, 'uploads')
     os.makedirs(upload_path, exist_ok=True)
 
@@ -177,44 +157,6 @@ def delete_vehicle(id):
     flash("Vehicle deleted successfully!")
     return redirect(url_for('dashboard'))
 
-# ---------------- EXPORT ----------------
-@app.route('/export/<format>')
-@login_required
-def export(format):
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
-    query = Booking.query
-    if from_date and to_date:
-        from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
-        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
-        query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
-
-    bookings = query.all()
-    data = [[b.name, b.model, b.phone, b.location, b.date] for b in bookings]
-    df = pd.DataFrame(data, columns=["Name","Model","Phone","Location","Date"])
-
-    if format == "excel":
-        file = "bookings.xlsx"
-        df.to_excel(file, index=False)
-        return send_file(file, as_attachment=True)
-    if format == "word":
-        file = "bookings.docx"
-        doc = Document()
-        doc.add_heading("Booking List")
-        for row in data:
-            doc.add_paragraph(str(row))
-        doc.save(file)
-        return send_file(file, as_attachment=True)
-    if format == "pdf":
-        file = "bookings.pdf"
-        c = canvas.Canvas(file)
-        y = 800
-        for row in data:
-            c.drawString(30,y,str(row))
-            y -= 20
-        c.save()
-        return send_file(file, as_attachment=True)
-
 # ---------------- LOGOUT ----------------
 @app.route('/logout')
 @login_required
@@ -224,7 +166,8 @@ def logout():
     return redirect(url_for('admin'))
 
 # ---------------- RUN ----------------
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()  # ensures all tables exist
     app.run(debug=True)
