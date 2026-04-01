@@ -23,14 +23,27 @@
             padding: 8px 15px;
             border-radius: 8px;
         }
-        .logout-btn:hover { background-color: #dc2626; }
-        h3 { font-weight: 600; margin-bottom: 20px; }
-        table th, table td { vertical-align: middle !important; }
-        .vehicle-img { height: 60px; object-fit: contain; margin-right:5px; }
-        .form-section { margin-bottom: 40px; }
-        .btn-danger, .btn-primary { border-radius: 8px; font-weight: 600; }
-        .carousel-inner img { height: 60px; object-fit: contain; }
-        .carousel-control-prev, .carousel-control-next { width: 15px; }
+        .logout-btn:hover {
+            background-color: #dc2626;
+        }
+        h3 {
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            vertical-align: middle !important;
+        }
+        .vehicle-img {
+            height: 60px;
+            object-fit: contain;
+        }
+        .form-section {
+            margin-bottom: 40px;
+        }
+        .btn-danger, .btn-primary {
+            border-radius: 8px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -39,6 +52,7 @@
     <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
 
     <h3>Bookings</h3>
+
     <form method="GET" class="mb-3 d-flex gap-2 flex-wrap">
         <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}" class="form-control" placeholder="From Date" required>
         <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}" class="form-control" placeholder="To Date" required>
@@ -112,14 +126,14 @@
         </select>
         <input type="number" name="price" placeholder="Price per day (₹)" class="form-control mb-2" required>
         <input type="text" name="badge" placeholder="Badge (Optional: Most Popular, Limited Offer)" class="form-control mb-2">
-        <input type="file" name="images" accept="image/*" class="form-control mb-2" multiple required>
+        <input type="file" name="image" accept="image/*" class="form-control mb-2" required>
         <button class="btn btn-primary">Add Vehicle</button>
     </form>
 
     <table class="table table-bordered">
         <thead>
             <tr>
-                <th>Images</th>
+                <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
                 <th>Price/day</th>
@@ -130,29 +144,7 @@
         <tbody>
             {% for v in vehicles %}
             <tr>
-                <td>
-                    {% if v.images %}
-                    <div id="carouselAdmin{{ v.id }}" class="carousel slide" data-bs-ride="carousel" style="width:120px;">
-                        <div class="carousel-inner">
-                            {% for img in v.images %}
-                            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                <img src="{{ url_for('static', filename='uploads/' + img.filename) }}" class="d-block w-100 vehicle-img">
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% if v.images|length > 1 %}
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselAdmin{{ v.id }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carouselAdmin{{ v.id }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon"></span>
-                        </button>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    No images
-                    {% endif %}
-                </td>
+                <td><img src="{{ url_for('static', filename='uploads/' + v.image) }}" class="vehicle-img"></td>
                 <td>{{ v.name }}</td>
                 <td>{{ v.category }}</td>
                 <td>₹{{ v.price }}</td>
