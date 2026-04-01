@@ -13,12 +13,7 @@ app.secret_key = "secretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
 db = SQLAlchemy(app)
 
-# Default Admin Credentials
-ADMIN_USER = "Tanveer"
-ADMIN_PASS = "998636"
-
 # ---------------- DATABASE MODELS ----------------
-
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -32,7 +27,6 @@ class Blog(db.Model):
     title = db.Column(db.String(200))
     content = db.Column(db.Text)
 
-# New models for vehicles with multiple images
 class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -65,30 +59,29 @@ def booking():
             flash("Please select a vehicle to book.")
             return redirect(url_for('booking'))
 
-        data = Booking(
+        booking = Booking(
             name=request.form['name'],
             model=selected_model,
             phone=request.form['phone'],
             location=request.form['location']
         )
-        db.session.add(data)
+        db.session.add(booking)
         db.session.commit()
-
-        # Confirmation flash
-        flash(f"Booking Successful! Our executive will call you soon.")
+        flash("Booking Successful! Our executive will call you soon.")
         return redirect(url_for('booking'))
 
     blogs = Blog.query.all()
     banner_folder = os.path.join(app.static_folder, "images")
     banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
     banners.sort()
-
     vehicles = Vehicle.query.all()
     return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
 
 # ---------------- ADMIN LOGIN ----------------
 @app.route('/admin', methods=['GET','POST'])
 def admin():
+    ADMIN_USER = "Tanveer"
+    ADMIN_PASS = "998636"
     if request.method == 'POST':
         if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
             session.permanent = True
@@ -155,13 +148,12 @@ def add_vehicle():
     db.session.add(vehicle)
     db.session.commit()
 
-    # Multiple images
-    image_files = request.files.getlist('images')
+    images = request.files.getlist('images')
     upload_path = os.path.join(app.static_folder, 'uploads')
     os.makedirs(upload_path, exist_ok=True)
 
-    for img in image_files:
-        if img:
+    for img in images:
+        if img and img.filename:
             filename = img.filename
             img.save(os.path.join(upload_path, filename))
             db.session.add(VehicleImage(vehicle_id=vehicle.id, filename=filename))
@@ -234,5 +226,5 @@ def logout():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
+        db.create_all()  # ensures all tables exist
     app.run(debug=True)
