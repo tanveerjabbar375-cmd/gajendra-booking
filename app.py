@@ -243,9 +243,12 @@ def logout():
     flash("Logged out successfully")
     return redirect(url_for('admin'))
 
+# ----------- CREATE TABLES AT APP STARTUP -------------
+
+with app.app_context():
+    db.create_all()
+
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
