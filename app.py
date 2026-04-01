@@ -10,6 +10,10 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
 db = SQLAlchemy(app)
 
+# Default Admin Credentials
+ADMIN_USER = "Tanveer"
+ADMIN_PASS = "998636"
+
 # ---------------- DATABASE MODELS ----------------
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -76,9 +80,6 @@ def booking():
     return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
 
 # ---------------- ADMIN LOGIN ----------------
-ADMIN_USER = "Tanveer"
-ADMIN_PASS = "998636"
-
 @app.route('/admin', methods=['GET','POST'])
 def admin():
     if request.method == 'POST':
@@ -96,15 +97,20 @@ def admin():
 @login_required
 def dashboard():
     now = datetime.utcnow().timestamp()
-    if 'last_activity' in session and now - session['last_activity'] > 300:
-        session.clear()
-        flash("Session expired. Please login again.")
-        return redirect(url_for('admin'))
+
+    if 'last_activity' in session:
+        if now - session['last_activity'] > 300:
+            session.clear()
+            flash("Session expired. Please login again.")
+            return redirect(url_for('admin'))
+
     session['last_activity'] = now
 
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
+
     query = Booking.query
+
     if from_date and to_date:
         from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
         to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
@@ -112,8 +118,12 @@ def dashboard():
 
     bookings = query.all()
     blogs = Blog.query.all()
-    vehicles = Vehicle.query.all()
-    return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs, vehicles=vehicles)
+    vehicles = Vehicle.query.all()  # for admin management
+
+    return render_template("admin_dashboard.html",
+                           bookings=bookings,
+                           blogs=blogs,
+                           vehicles=vehicles)
 
 # ---------------- VEHICLE ADD ----------------
 @app.route('/add_vehicle', methods=['POST'])
@@ -124,6 +134,13 @@ def add_vehicle():
     price = int(request.form['price'])
     badge = request.form.get('badge') or None
     image_files = request.files.getlist('images')  # get multiple images
+
+
+    if image_file:
+        filename = image_file.filename
+        upload_path = os.path.join(app.static_folder, 'uploads')
+        os.makedirs(upload_path, exist_ok=True)
+        image_file.save(os.path.join(upload_path, filename))
 
     vehicle = Vehicle(name=name, category=category, price=price, badge=badge)
     db.session.add(vehicle)
