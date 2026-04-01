@@ -32,14 +32,21 @@ class Blog(db.Model):
     title = db.Column(db.String(200))
     content = db.Column(db.Text)
 
-class Vehicle(db.Model):  # New model for vehicles with images, price, category etc
+# New models for vehicles with multiple images
+class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    category = db.Column(db.String(50))  # e.g., 'Scooter', 'Motorcycle', 'Electric'
-    price = db.Column(db.Integer)        # price per day
-    image = db.Column(db.String(200))   # filename of vehicle image stored in static/uploads/
-    badge = db.Column(db.String(50))    # e.g., 'Most Popular', 'Limited Offer' or None
+    category = db.Column(db.String(50))
+    price = db.Column(db.Integer)
+    badge = db.Column(db.String(50))
 
+class VehicleImage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'))
+    filename = db.Column(db.String(200))
+    vehicle = db.relationship('Vehicle', backref=db.backref('images', lazy=True))
+
+# ---------------- LOGIN DECORATOR ----------------
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -50,7 +57,6 @@ def login_required(f):
     return decorated_function
 
 # ---------------- BOOKING PAGE ----------------
-
 @app.route('/', methods=['GET', 'POST'])
 def booking():
     if request.method == 'POST':
@@ -67,27 +73,22 @@ def booking():
         )
         db.session.add(data)
         db.session.commit()
-        flash("Booked Successfully!")
+
+        # Confirmation flash
+        flash(f"Booking Successful! Our executive will call you soon.")
         return redirect(url_for('booking'))
 
-    # Blogs fetch
     blogs = Blog.query.all()
-
-    # Dynamic banners from static/images folder
     banner_folder = os.path.join(app.static_folder, "images")
     banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
-    banners.sort()  # optional: alphabetically
+    banners.sort()
 
-    # Vehicles fetch for booking page
     vehicles = Vehicle.query.all()
-
     return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
 
 # ---------------- ADMIN LOGIN ----------------
-
 @app.route('/admin', methods=['GET','POST'])
 def admin():
-    global ADMIN_USER, ADMIN_PASS
     if request.method == 'POST':
         if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
             session.permanent = True
@@ -99,25 +100,20 @@ def admin():
     return render_template("admin_login.html")
 
 # ---------------- DASHBOARD ----------------
-
 @app.route('/dashboard', methods=['GET','POST'])
 @login_required
 def dashboard():
     now = datetime.utcnow().timestamp()
-
-    if 'last_activity' in session:
-        if now - session['last_activity'] > 300:
-            session.clear()
-            flash("Session expired. Please login again.")
-            return redirect(url_for('admin'))
-
+    if 'last_activity' in session and now - session['last_activity'] > 300:
+        session.clear()
+        flash("Session expired. Please login again.")
+        return redirect(url_for('admin'))
     session['last_activity'] = now
 
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
 
     query = Booking.query
-
     if from_date and to_date:
         from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
         to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
@@ -125,15 +121,10 @@ def dashboard():
 
     bookings = query.all()
     blogs = Blog.query.all()
-    vehicles = Vehicle.query.all()  # for admin management
+    vehicles = Vehicle.query.all()
+    return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs, vehicles=vehicles)
 
-    return render_template("admin_dashboard.html",
-                           bookings=bookings,
-                           blogs=blogs,
-                           vehicles=vehicles)
-
-# ---------------- BLOG ADD ----------------
-
+# ---------------- BLOG MANAGEMENT ----------------
 @app.route('/add_blog', methods=['POST'])
 @login_required
 def add_blog():
@@ -151,8 +142,7 @@ def delete_blog(id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# ---------------- VEHICLE ADD ----------------
-
+# ---------------- VEHICLE MANAGEMENT ----------------
 @app.route('/add_vehicle', methods=['POST'])
 @login_required
 def add_vehicle():
@@ -160,17 +150,22 @@ def add_vehicle():
     category = request.form['category']
     price = int(request.form['price'])
     badge = request.form.get('badge') or None
-    image_file = request.files.get('image')
 
-    if image_file:
-        filename = image_file.filename
-        upload_path = os.path.join(app.static_folder, 'uploads')
-        os.makedirs(upload_path, exist_ok=True)
-        image_file.save(os.path.join(upload_path, filename))
+    vehicle = Vehicle(name=name, category=category, price=price, badge=badge)
+    db.session.add(vehicle)
+    db.session.commit()
 
-        vehicle = Vehicle(name=name, category=category, price=price, image=filename, badge=badge)
-        db.session.add(vehicle)
-        db.session.commit()
+    # Multiple images
+    image_files = request.files.getlist('images')
+    upload_path = os.path.join(app.static_folder, 'uploads')
+    os.makedirs(upload_path, exist_ok=True)
+
+    for img in image_files:
+        if img:
+            filename = img.filename
+            img.save(os.path.join(upload_path, filename))
+            db.session.add(VehicleImage(vehicle_id=vehicle.id, filename=filename))
+    db.session.commit()
 
     flash("Vehicle added successfully!")
     return redirect(url_for('dashboard'))
@@ -180,41 +175,36 @@ def add_vehicle():
 def delete_vehicle(id):
     vehicle = Vehicle.query.get(id)
     if vehicle:
-        # Optionally delete image file too (not implemented)
+        for img in vehicle.images:
+            try:
+                os.remove(os.path.join(app.static_folder, 'uploads', img.filename))
+            except:
+                pass
         db.session.delete(vehicle)
         db.session.commit()
     flash("Vehicle deleted successfully!")
     return redirect(url_for('dashboard'))
 
 # ---------------- EXPORT ----------------
-
 @app.route('/export/<format>')
 @login_required
 def export(format):
-
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
-
     query = Booking.query
-
     if from_date and to_date:
         from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
         to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
         query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
 
     bookings = query.all()
-
-    data = []
-    for b in bookings:
-        data.append([b.name, b.model, b.phone, b.location, b.date])
-
+    data = [[b.name, b.model, b.phone, b.location, b.date] for b in bookings]
     df = pd.DataFrame(data, columns=["Name","Model","Phone","Location","Date"])
 
     if format == "excel":
         file = "bookings.xlsx"
         df.to_excel(file, index=False)
         return send_file(file, as_attachment=True)
-
     if format == "word":
         file = "bookings.docx"
         doc = Document()
@@ -223,7 +213,6 @@ def export(format):
             doc.add_paragraph(str(row))
         doc.save(file)
         return send_file(file, as_attachment=True)
-
     if format == "pdf":
         file = "bookings.pdf"
         c = canvas.Canvas(file)
@@ -235,7 +224,6 @@ def export(format):
         return send_file(file, as_attachment=True)
 
 # ---------------- LOGOUT ----------------
-
 @app.route('/logout')
 @login_required
 def logout():
@@ -243,12 +231,8 @@ def logout():
     flash("Logged out successfully")
     return redirect(url_for('admin'))
 
-# ----------- CREATE TABLES AT APP STARTUP -------------
-
-with app.app_context():
-    db.create_all()
-
 # ---------------- RUN ----------------
-
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
