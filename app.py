@@ -87,7 +87,7 @@ def booking():
 
 
 # 🔥 ADMIN DASHBOARD
-@app.route('/dashboard')
+@app.route('/admin')
 def dashboard():
     conn = get_db()
     c = conn.cursor()
