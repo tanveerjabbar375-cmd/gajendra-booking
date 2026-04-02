@@ -188,7 +188,7 @@
                     <img src="{{ url_for('static', filename='uploads/' + v.image) }}" alt="{{ v.name }}">
                     <h5 style="font-weight:600;">{{ v.name }}</h5>
                     <p style="color:#6b7280; font-size:14px;">{{ v.category }}</p>
-                    <div class="price">₹{{ v.price }}/day</div>
+                    <div class="price">₹{{ v.price }}Ex showroom</div>
                     <button type="button" class="btn-select mt-2" onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">Select</button>
                 </div>
             </div>
@@ -199,8 +199,8 @@
         <div class="bottom-bar">
             <button type="button" class="btn btn-outline-primary">View Details</button>
             <div>
-                <span style="font-weight:500;">Total: ₹<span id="totalPrice">0</span>/day</span>
-                <button type="submit" class="btn-proceed ms-3">Proceed to Pay</button>
+                <span style="font-weight:500;">Total: ₹<span id="totalPrice">0</span>Ex showroom</span>
+                <button type="submit" class="btn-proceed ms-3">Book Now</button>
             </div>
         </div>
     </form>
