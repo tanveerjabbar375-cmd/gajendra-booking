@@ -48,46 +48,41 @@ class Blog(db.Model):
 
 class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    vehicle_type = db.Column(db.String(20))  # MC / SC / EV
+    vehicle_type = db.Column(db.String(10))  # MC / SC / EV
     model = db.Column(db.String(100))
     price = db.Column(db.Float)
-    font_color = db.Column(db.String(20), default="#000000")
+    font_color = db.Column(db.String(20))
     images = db.relationship('VehicleImage', backref='vehicle', cascade="all, delete-orphan")
 
 class VehicleImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'))
     filename = db.Column(db.String(200))
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'))
 
 # ---------------- ROUTES ----------------
 
 @app.route('/', methods=['GET', 'POST'])
 def booking():
     vehicles = Vehicle.query.all()
+    @app.route('/', methods=['GET', 'POST'])
+def booking():
     if request.method == 'POST':
-        vehicle_id = request.form.get('vehicle_id')
-        name = request.form.get('name')
-        phone = request.form.get('phone')
-        location = request.form.get('location')
-
-        if not vehicle_id:
-            flash("Please select a vehicle")
-            return redirect(url_for('booking'))
-
-        booking_entry = Booking(
-            vehicle_id=int(vehicle_id),
-            name=name,
-            phone=phone,
-            location=location
+        vehicle_id = request.form['vehicle_id']
+        vehicle = Vehicle.query.get(vehicle_id)
+        data = Booking(
+            name=request.form['name'],
+            model=vehicle.model,
+            phone=request.form['phone'],
+            location=request.form['location']
         )
-        db.session.add(booking_entry)
+        db.session.add(data)
         db.session.commit()
-        flash("Booking Successful! Our executive will call you soon.")
+        flash("Booked Successfully!")
         return redirect(url_for('booking'))
 
+    vehicles = Vehicle.query.all()
     blogs = Blog.query.all()
     return render_template("booking.html", vehicles=vehicles, blogs=blogs)
-
 # ---------------- ADMIN LOGIN ----------------
 @app.route('/admin', methods=['GET','POST'])
 def admin():
