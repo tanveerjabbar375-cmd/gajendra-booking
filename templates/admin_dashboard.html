@@ -6,8 +6,6 @@
     <style>
         body {
             background-color: #f8f9fa;
-            font-family: 'Inter', sans-serif;
-            color: #1f2937;
         }
         .container-box {
             width: 90%;
@@ -17,154 +15,117 @@
             position: fixed;
             top: 15px;
             right: 15px;
-            background-color: #ef4444;
-            border: none;
+            background-color: #ff0000; /* bright red */
             color: white;
             padding: 8px 15px;
             border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: background-color 0.3s ease;
         }
         .logout-btn:hover {
-            background-color: #dc2626;
-        }
-        h3 {
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        table th, table td {
-            vertical-align: middle !important;
-        }
-        .vehicle-img {
-            height: 60px;
-            object-fit: contain;
-        }
-        .form-section {
-            margin-bottom: 40px;
-        }
-        .btn-danger, .btn-primary {
-            border-radius: 8px;
-            font-weight: 600;
+            background-color: #cc0000; /* darker red on hover */
         }
     </style>
 </head>
 <body>
 
 <div class="container-box">
-    <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
 
-    <h3>Bookings</h3>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Admin Dashboard</h3>
 
-    <form method="GET" class="mb-3 d-flex gap-2 flex-wrap">
-        <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}" class="form-control" placeholder="From Date" required>
-        <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}" class="form-control" placeholder="To Date" required>
-        <button class="btn btn-primary">Filter</button>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+        {% if session.get('admin_logged_in') %}
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        {% endif %}
+    </div>
+
+    <!-- Rest of your dashboard content -->
+    <form method="GET" action="/dashboard" class="row g-3 mb-3">
+
+        <div class="col-md-3">
+            <label>From Date</label>
+            <input type="date" name="from_date" class="form-control">
+        </div>
+
+        <div class="col-md-3">
+            <label>To Date</label>
+            <input type="date" name="to_date" class="form-control">
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+            <button class="btn btn-primary me-2">Filter</button>
+            <a href="/dashboard" class="btn btn-secondary">Reset</a>
+        </div>
+
     </form>
 
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Model</th>
-                <th>Phone</th>
-                <th>Location</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for b in bookings %}
-            <tr>
-                <td>{{ b.name }}</td>
-                <td>{{ b.model }}</td>
-                <td>{{ b.phone }}</td>
-                <td>{{ b.location }}</td>
-                <td>{{ b.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5" class="text-center">No bookings found.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="mb-3">
+        <a href="/export/excel?from_date={{ request.args.get('from_date') }}&to_date={{ request.args.get('to_date') }}" class="btn btn-success btn-sm">Export Excel</a>
 
-    <h3>Manage Blogs</h3>
-    <form method="POST" action="{{ url_for('add_blog') }}" class="mb-4">
-        <input type="text" name="title" placeholder="Blog Title" class="form-control mb-2" required>
-        <textarea name="content" placeholder="Blog Content" class="form-control mb-2" required></textarea>
-        <button class="btn btn-primary">Add Blog</button>
-    </form>
+        <a href="/export/pdf?from_date={{ request.args.get('from_date') }}&to_date={{ request.args.get('to_date') }}" class="btn btn-danger btn-sm">Export PDF</a>
 
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Content</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody>
+        <a href="/export/word?from_date={{ request.args.get('from_date') }}&to_date={{ request.args.get('to_date') }}" class="btn btn-primary btn-sm">Export Word</a>
+    </div>
+
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#bookings">Bookings</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#blogs">Blogs</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#addBlog">Add Blog</button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+
+        <div class="tab-pane fade show active" id="bookings">
+            <table class="table table-bordered">
+                <tr>
+                    <th>Name</th>
+                    <th>Model</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Date</th>
+                </tr>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.name }}</td>
+                    <td>{{ b.model }}</td>
+                    <td>{{ b.phone }}</td>
+                    <td>{{ b.location }}</td>
+                    <td>{{ b.date }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="blogs">
             {% for blog in blogs %}
-            <tr>
-                <td>{{ blog.title }}</td>
-                <td>{{ blog.content }}</td>
-                <td>
-                    <a href="{{ url_for('delete_blog', id=blog.id) }}" class="btn btn-danger btn-sm">Delete</a>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="3" class="text-center">No blogs found.</td></tr>
+                <h5>{{ blog.title }}</h5>
+                <p>{{ blog.content }}</p>
+                <a href="/delete_blog/{{ blog.id }}" class="text-danger">Delete</a>
+                <hr>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
 
-    <h3>Manage Vehicles</h3>
-    <form method="POST" action="{{ url_for('add_vehicle') }}" enctype="multipart/form-data" class="mb-4">
-        <input type="text" name="name" placeholder="Vehicle Name" class="form-control mb-2" required>
-        <select name="category" class="form-control mb-2" required>
-            <option value="">Select Category</option>
-            <option>Scooter</option>
-            <option>Motorcycle</option>
-            <option>Electric</option>
-        </select>
-        <input type="number" name="price" placeholder="Price per day (₹)" class="form-control mb-2" required>
-        <input type="text" name="badge" placeholder="Badge (Optional: Most Popular, Limited Offer)" class="form-control mb-2">
-        <input type="file" name="image" accept="image/*" class="form-control mb-2" required>
-        <button class="btn btn-primary">Add Vehicle</button>
-    </form>
+        <div class="tab-pane fade" id="addBlog">
+            <form method="POST" action="/add_blog">
+                <input type="text" name="title" class="form-control mb-3" placeholder="Blog Title" required>
+                <textarea name="content" class="form-control mb-3" placeholder="Blog Content" required></textarea>
+                <button class="btn btn-primary">Add Blog</button>
+            </form>
+        </div>
 
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Image</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Price/day</th>
-                <th>Badge</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for v in vehicles %}
-            <tr>
-                <td><img src="{{ url_for('static', filename='uploads/' + v.image) }}" class="vehicle-img"></td>
-                <td>{{ v.name }}</td>
-                <td>{{ v.category }}</td>
-                <td>₹{{ v.price }}</td>
-                <td>{{ v.badge or '' }}</td>
-                <td><a href="{{ url_for('delete_vehicle', id=v.id) }}" class="btn btn-danger btn-sm">Delete</a></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" class="text-center">No vehicles added.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h3>Export Bookings</h3>
-    <a href="{{ url_for('export', format='excel', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">Export Excel</a>
-    <a href="{{ url_for('export', format='word', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">Export Word</a>
-    <a href="{{ url_for('export', format='pdf', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary">Export PDF</a>
+    </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>
