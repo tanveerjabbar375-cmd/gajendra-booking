@@ -10,7 +10,11 @@ from functools import wraps
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
+
+# Use Render-friendly absolute path for SQLite
+db_path = os.path.join(app.root_path, "booking.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Default Admin Credentials
@@ -32,13 +36,15 @@ class Blog(db.Model):
     title = db.Column(db.String(200))
     content = db.Column(db.Text)
 
-class Vehicle(db.Model):  # New model for vehicles with images, price, category etc
+class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    category = db.Column(db.String(50))  # e.g., 'Scooter', 'Motorcycle', 'Electric'
-    price = db.Column(db.Integer)        # price per day
-    image = db.Column(db.String(200))   # filename of vehicle image stored in static/uploads/
-    badge = db.Column(db.String(50))    # e.g., 'Most Popular', 'Limited Offer' or None
+    category = db.Column(db.String(50))
+    price = db.Column(db.Integer)
+    image = db.Column(db.String(200))
+    badge = db.Column(db.String(50))
+
+# ---------------- LOGIN REQUIRED DECORATOR ----------------
 
 def login_required(f):
     @wraps(f)
@@ -73,12 +79,14 @@ def booking():
     # Blogs fetch
     blogs = Blog.query.all()
 
-    # Dynamic banners from static/images folder
+    # Dynamic banners (safe check)
+    banners = []
     banner_folder = os.path.join(app.static_folder, "images")
-    banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
-    banners.sort()  # optional: alphabetically
+    if os.path.exists(banner_folder):
+        banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
+        banners.sort()
 
-    # Vehicles fetch for booking page
+    # Vehicles fetch
     vehicles = Vehicle.query.all()
 
     return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
@@ -117,22 +125,21 @@ def dashboard():
     to_date = request.args.get('to_date')
 
     query = Booking.query
-
     if from_date and to_date:
-        from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
-        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
-        query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+        try:
+            from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
+            to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
+            query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+        except:
+            flash("Invalid date format")
 
     bookings = query.all()
     blogs = Blog.query.all()
-    vehicles = Vehicle.query.all()  # for admin management
+    vehicles = Vehicle.query.all()
 
-    return render_template("admin_dashboard.html",
-                           bookings=bookings,
-                           blogs=blogs,
-                           vehicles=vehicles)
+    return render_template("admin_dashboard.html", bookings=bookings, blogs=blogs, vehicles=vehicles)
 
-# ---------------- BLOG ADD ----------------
+# ---------------- BLOG & VEHICLE ROUTES ----------------
 
 @app.route('/add_blog', methods=['POST'])
 @login_required
@@ -151,8 +158,6 @@ def delete_blog(id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# ---------------- VEHICLE ADD ----------------
-
 @app.route('/add_vehicle', methods=['POST'])
 @login_required
 def add_vehicle():
@@ -162,16 +167,16 @@ def add_vehicle():
     badge = request.form.get('badge') or None
     image_file = request.files.get('image')
 
+    filename = None
     if image_file:
         filename = image_file.filename
         upload_path = os.path.join(app.static_folder, 'uploads')
         os.makedirs(upload_path, exist_ok=True)
         image_file.save(os.path.join(upload_path, filename))
 
-        vehicle = Vehicle(name=name, category=category, price=price, image=filename, badge=badge)
-        db.session.add(vehicle)
-        db.session.commit()
-
+    vehicle = Vehicle(name=name, category=category, price=price, image=filename, badge=badge)
+    db.session.add(vehicle)
+    db.session.commit()
     flash("Vehicle added successfully!")
     return redirect(url_for('dashboard'))
 
@@ -180,7 +185,6 @@ def add_vehicle():
 def delete_vehicle(id):
     vehicle = Vehicle.query.get(id)
     if vehicle:
-        # Optionally delete image file too (not implemented)
         db.session.delete(vehicle)
         db.session.commit()
     flash("Vehicle deleted successfully!")
@@ -191,28 +195,23 @@ def delete_vehicle(id):
 @app.route('/export/<format>')
 @login_required
 def export(format):
-
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
-
     query = Booking.query
-
     if from_date and to_date:
-        from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
-        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
-        query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+        try:
+            from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
+            to_date_obj = datetime.strptime(to_date, "%Y-%m-%d")
+            query = query.filter(Booking.date.between(from_date_obj, to_date_obj))
+        except:
+            flash("Invalid date format")
 
     bookings = query.all()
-
-    data = []
-    for b in bookings:
-        data.append([b.name, b.model, b.phone, b.location, b.date])
-
-    df = pd.DataFrame(data, columns=["Name","Model","Phone","Location","Date"])
+    data = [[b.name, b.model, b.phone, b.location, b.date] for b in bookings]
 
     if format == "excel":
         file = "bookings.xlsx"
-        df.to_excel(file, index=False)
+        pd.DataFrame(data, columns=["Name","Model","Phone","Location","Date"]).to_excel(file, index=False)
         return send_file(file, as_attachment=True)
 
     if format == "word":
@@ -229,7 +228,7 @@ def export(format):
         c = canvas.Canvas(file)
         y = 800
         for row in data:
-            c.drawString(30,y,str(row))
+            c.drawString(30, y, str(row))
             y -= 20
         c.save()
         return send_file(file, as_attachment=True)
@@ -243,12 +242,13 @@ def logout():
     flash("Logged out successfully")
     return redirect(url_for('admin'))
 
-# ----------- CREATE TABLES AT APP STARTUP -------------
+# ---------------- CREATE TABLES ----------------
 
 with app.app_context():
     db.create_all()
 
-# ---------------- RUN ----------------
+# ---------------- RUN LOCAL ----------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
