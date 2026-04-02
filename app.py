@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from docx import Document
 from reportlab.pdfgen import canvas
@@ -9,7 +9,6 @@ from flask import session
 from functools import wraps
 
 app = Flask(__name__)
-from datetime import timedelta
 
 app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
@@ -35,6 +34,16 @@ class Blog(db.Model):
     title = db.Column(db.String(200))
     content = db.Column(db.Text)
 
+# ✅ NEW VEHICLE MODEL
+class Vehicle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    price = db.Column(db.String(50))
+    type = db.Column(db.String(20))  # MS / SC / EV
+    image1 = db.Column(db.String(200))
+    image2 = db.Column(db.String(200))
+    image3 = db.Column(db.String(200))
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -57,19 +66,20 @@ def booking():
         )
         db.session.add(data)
         db.session.commit()
-        flash("Booked Successfully!")
+        flash("Booked Successfully! Our executive will call you soon.")
         return redirect(url_for('booking'))
 
-    # Blogs fetch
     blogs = Blog.query.all()
 
-    # Dynamic banners from static/images folder
+    # ✅ FETCH VEHICLES
+    vehicles = Vehicle.query.all()
+
+    # banners (unchanged)
     banner_folder = os.path.join(app.static_folder, "images")
     banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
-    banners.sort()  # optional: alphabetically
+    banners.sort()
 
-    # Pass banners to template
-    return render_template("booking.html", blogs=blogs, banners=banners)
+    return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
 
 # ---------------- ADMIN LOGIN ----------------
 
@@ -92,7 +102,6 @@ def admin():
 @login_required
 def dashboard():
 
- # Auto logout after 5 minutes inactivity
     now = datetime.utcnow().timestamp()
 
     if 'last_activity' in session:
@@ -116,9 +125,56 @@ def dashboard():
     bookings = query.all()
     blogs = Blog.query.all()
 
+    # ✅ PASS VEHICLES TO DASHBOARD
+    vehicles = Vehicle.query.all()
+
     return render_template("admin_dashboard.html",
                            bookings=bookings,
-                           blogs=blogs)
+                           blogs=blogs,
+                           vehicles=vehicles)
+
+# ---------------- ADD VEHICLE ----------------
+
+@app.route('/add_vehicle', methods=['POST'])
+@login_required
+def add_vehicle():
+
+    image1 = request.files['image1']
+    image2 = request.files.get('image2')
+    image3 = request.files.get('image3')
+
+    # Save images
+    image1.save(os.path.join("static/images", image1.filename))
+
+    if image2 and image2.filename != "":
+        image2.save(os.path.join("static/images", image2.filename))
+
+    if image3 and image3.filename != "":
+        image3.save(os.path.join("static/images", image3.filename))
+
+    vehicle = Vehicle(
+        name=request.form['name'],
+        price=request.form['price'],
+        type=request.form['type'],
+        image1=image1.filename,
+        image2=image2.filename if image2 and image2.filename != "" else "",
+        image3=image3.filename if image3 and image3.filename != "" else ""
+    )
+
+    db.session.add(vehicle)
+    db.session.commit()
+
+    return redirect(url_for('dashboard'))
+
+# ---------------- DELETE VEHICLE ----------------
+
+@app.route('/delete_vehicle/<int:id>')
+@login_required
+def delete_vehicle(id):
+    v = Vehicle.query.get(id)
+    db.session.delete(v)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
 
 # ---------------- BLOG ADD ----------------
 

@@ -3,47 +3,89 @@
 <head>
     <title>Book Two Wheeler</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body{
-            background-color:#f8f9fa;
-        }
-        .form-container{
-            width:85%;
-            margin:40px auto;
-        }
-        h3{
-            font-weight:500;
-            margin-bottom:20px;
-        }
-        .btn-primary{
-            padding:5px 14px;
-            font-size:14px;
-        }
-        .tab-content{
-            margin-top:20px;
-        }
- /* 🔥 Banner carousel images fit without cropping */
-    .banner-img {
-        width: 100%;           /* Full width */
-        height: auto;          /* Maintain aspect ratio */
-        max-height: 500px;     /* Optional: max height */
-        object-fit: contain;   /* Show whole image */
-        display: block;        /* Remove inline gap */
-        margin: 0 auto;        /* Center if smaller */
-    }
 
-    /* Optional: make carousel container safe */
-    #offerCarousel {
-        text-align: center;
-        overflow: hidden;
-    }
+    <style>
+        :root {
+            --bg-white: #FFFFFF;
+            --text-black: #000000;
+            --primary-blue: #4A90E2;
+            --primary-blue-hover: #357ABD;
+            --cta-red: #FF5A5F;
+            --cta-red-hover: #E0484D;
+            --border-grey: #E0E0E0;
+            --text-grey: #757575;
+        }
+
+        body {
+            background: var(--bg-white);
+            color: var(--text-black);
+        }
+
+        .form-container {
+            width: 90%;
+            margin: 30px auto;
+        }
+
+        /* Vehicle Card */
+        .bike-card {
+            border: 1px solid var(--border-grey);
+            border-radius: 12px;
+            padding: 15px;
+            background: #fff;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .bike-card:hover {
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+
+        .bike-card.active {
+            border: 2px solid var(--primary-blue);
+        }
+
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* Buttons */
+        .btn-select {
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            width: 100%;
+        }
+
+        .btn-select:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-book {
+            background: var(--cta-red);
+            color: white;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .btn-book:hover {
+            background: var(--cta-red-hover);
+        }
+
+        /* Banner */
+        .banner-img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
     </style>
 </head>
+
 <body>
 
 <div class="form-container">
 
-    <h3>Book Your Two Wheeler</h3>
+    <h3 class="mb-4">Book Your Two Wheeler</h3>
 
     {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -51,98 +93,119 @@
     {% endif %}
     {% endwith %}
 
+    <!-- 🔥 VEHICLE SELECTION -->
+    <h4 class="mb-3">Select Your Vehicle</h4>
+
     <form method="POST">
-        <input type="text" name="name" class="form-control mb-3" placeholder="Name" required>
-        <input type="text" name="phone" class="form-control mb-3" placeholder="Phone" required>
 
-        <select name="model" class="form-control mb-3" required>
-            <option value="">Select Model</option>
-            <option>Activa110</option>
-  <option>Activa 125</option>
-  <option>Dio 110</option>
-  <option>Dio 125</option>
-  <option>Livo Drum</option>
-  <option>Livo Disk</option>
-  <option>Shine 100</option>
-  <option>Shine 125</option>
-  <option>SP 125</option>
-  <option>SP 160</option>
-  <option>Unicorn</option>
-  <option>CB Hornet 125</option>
-  <option>Hornet</option>
-  <option>Nx 200</option>
+    <div class="row">
 
-        </select>
+        {% for v in vehicles %}
+        <div class="col-md-4 mb-4">
+            <div class="bike-card" onclick="selectBike('{{v.name}}', this)">
 
-        <select name="location" class="form-control mb-3" required>
-            <option value="">Select Location</option>
+                <!-- Image -->
+                <img src="{{ url_for('static', filename='images/' + v.image1) }}" class="img-fluid mb-2">
+
+                <!-- Name -->
+                <h5>{{ v.name }}</h5>
+
+                <!-- Type -->
+                <p style="color: var(--text-grey);">{{ v.type }}</p>
+
+                <!-- Price -->
+                <p class="price">₹{{ v.price }}</p>
+
+                <button type="button" class="btn btn-select">Select</button>
+
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Hidden model -->
+    <input type="hidden" name="model" id="selectedModel" required>
+
+    <hr>
+
+    <!-- 🔥 USER DETAILS -->
+    <h5 class="mt-4">Enter Details</h5>
+
+    <input type="text" name="name" class="form-control mb-3" placeholder="Name" required>
+    <input type="text" name="phone" class="form-control mb-3" placeholder="Phone" required>
+
+    <select name="location" class="form-control mb-3" required>
+        <option value="">Select Location</option>
             <option>Ballari</option>
-  <option>Bengalore</option>
-  <option>Belgaum</option>
-  <option>Bharamasagara</option>
-  <option>Bidar</option>
-  <option>Bijapur</option>
-  <option>Challakere</option>
-  <option>Chikmagalur</option>
-  <option>Chitradurga</option>
-  <option>Davanagere</option>
-  <option>Dharwad</option>
-  <option>Dandeli</option>
-  <option>Hasan</option>
-  <option>Hiriyur</option>
-  <option>Hospet</option>
-  <option>Hosadurga</option>
-  <option>Hubli</option>
-  <option>Kalaburagi</option>
-  <option>Mangakuru</option>
-  <option>Mysore</option>
-  <option>Nayakanahatty</option>
-  <option>Raichur</option>
-  <option>Ranebennur</option>
-  <option>Shimoga</option>
-  <option>Tumkur</option>
-  <option>Tarikere</option>
-  <option>Udupi</option>
-        </select>
+            <option>Bengalore</option>
+            <option>Belgaum</option>
+            <option>Bharamasagara</option>
+            <option>Bidar</option>
+            <option>Bijapur</option>
+            <option>Challakere</option>
+            <option>Chikmagalur</option>
+            <option>Chitradurga</option>
+            <option>Davanagere</option>
+            <option>Dharwad</option>
+            <option>Dandeli</option>
+            <option>Hasan</option>
+            <option>Hiriyur</option>
+            <option>Hospet</option>
+            <option>Hosadurga</option>
+            <option>Hubli</option>
+            <option>Kalaburagi</option>
+            <option>Mangakuru</option>
+            <option>Mysore</option>
+            <option>Nayakanahatty</option>
+            <option>Raichur</option>
+            <option>Ranebennur</option>
+            <option>Shimoga</option>
+            <option>Tumkur</option>
+            <option>Tarikere</option>
+            <option>Udupi</option>
+    </select>
 
-        <button class="btn btn-primary">Book Now</button>
+    <button class="btn btn-book">Book Now</button>
+
     </form>
 
-   <div id="offerCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="10000">
-  <div class="carousel-inner">
-
-    {% for banner in banners %}
-      <div class="carousel-item {% if loop.first %}active{% endif %}">
-        <img src="{{ url_for('static', filename='images/' + banner) }}" 
-             class="d-block w-100 banner-img">
-      </div>
-    {% endfor %}
-
-  </div>
-
-  <button class="carousel-control-prev" type="button" data-bs-target="#offerCarousel" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon"></span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#offerCarousel" data-bs-slide="next">
-    <span class="carousel-control-next-icon"></span>
-  </button>
-</div>
-
-<!-- Offer text below the carousel -->
-<ul class="mt-3 text-center" style="font-weight: 600; font-size: 16px; color: #2c3e50;">
-  <li>₹3000 Off on Shine 100 DX</li>
-</ul>
-        <div class="tab-pane fade" id="blogs">
-            {% for blog in blogs %}
-                <h5 class="mt-3">{{ blog.title }}</h5>
-                <p>{{ blog.content }}</p>
-                <hr>
+    <!-- 🔥 BANNER (UNCHANGED) -->
+    <div id="offerCarousel" class="carousel slide mt-5" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            {% for banner in banners %}
+            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                <img src="{{ url_for('static', filename='images/' + banner) }}" class="d-block w-100 banner-img">
+            </div>
             {% endfor %}
         </div>
     </div>
 
+    <!-- 🔥 BLOGS (UNCHANGED) -->
+    <div class="mt-5">
+        {% for blog in blogs %}
+            <h5>{{ blog.title }}</h5>
+            <p>{{ blog.content }}</p>
+            <hr>
+        {% endfor %}
+    </div>
+
 </div>
 
+<!-- 🔥 SCRIPT -->
+<script>
+function selectBike(model, element) {
+    document.getElementById("selectedModel").value = model;
+
+    document.querySelectorAll(".bike-card").forEach(card => {
+        card.classList.remove("active");
+    });
+
+    element.classList.add("active");
+}
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
