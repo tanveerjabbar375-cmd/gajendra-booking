@@ -11,13 +11,12 @@ app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
 
-# SQLite path
-db_path = os.path.join(app.root_path, "booking.db")
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
+# ---------------- POSTGRES CONFIG ----------------
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://gajendra_user:AEfojPqfRefvTI4iLU7HCQq9ans0Fv1P@dpg-d781aaudqaus73bff770-a/gajendra_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Admin credentials
+# ---------------- ADMIN CREDENTIALS ----------------
 ADMIN_USER = "Tanveer"
 ADMIN_PASS = "998636"
 
@@ -77,18 +76,19 @@ def booking():
         return redirect(url_for('booking'))
 
     blogs = Blog.query.all()
+    vehicles = Vehicle.query.all()
 
+    # Category-wise vehicles
+    scooters = [v for v in vehicles if v.category and v.category.lower() == 'scooter']
+    motorcycles = [v for v in vehicles if v.category and v.category.lower() == 'motorcycle']
+    electric = [v for v in vehicles if v.category and v.category.lower() == 'electric']
+
+    # Banners
     banners = []
     banner_folder = os.path.join(app.static_folder, "images")
     if os.path.exists(banner_folder):
         banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
         banners.sort()
-
-    vehicles = Vehicle.query.all()
-    # Category-wise vehicles safe handling
-    scooters = [v for v in vehicles if v.category and v.category.lower() == 'scooter']
-    motorcycles = [v for v in vehicles if v.category and v.category.lower() == 'motorcycle']
-    electric = [v for v in vehicles if v.category and v.category.lower() == 'electric']
 
     return render_template(
         "booking.html",
@@ -120,7 +120,6 @@ def admin():
 @login_required
 def dashboard():
     now = datetime.utcnow().timestamp()
-
     last_activity = session.get('last_activity')
     if last_activity and now - last_activity > 300:
         session.clear()
@@ -155,6 +154,7 @@ def add_blog():
     blog = Blog(title=request.form['title'], content=request.form['content'])
     db.session.add(blog)
     db.session.commit()
+    flash("Blog added successfully!")
     return redirect(url_for('dashboard'))
 
 @app.route('/delete_blog/<int:id>')
@@ -164,6 +164,7 @@ def delete_blog(id):
     if blog:
         db.session.delete(blog)
         db.session.commit()
+        flash("Blog deleted successfully!")
     return redirect(url_for('dashboard'))
 
 @app.route('/add_vehicle', methods=['POST'])
@@ -192,7 +193,6 @@ def add_vehicle():
 @login_required
 def edit_vehicle(id):
     vehicle = Vehicle.query.get_or_404(id)
-
     if request.method == 'POST':
         vehicle.name = request.form['name']
         vehicle.category = request.form['category']
@@ -220,7 +220,7 @@ def delete_vehicle(id):
     if vehicle:
         db.session.delete(vehicle)
         db.session.commit()
-    flash("Vehicle deleted successfully!")
+        flash("Vehicle deleted successfully!")
     return redirect(url_for('dashboard'))
 
 # ---------------- EXPORT ----------------
@@ -240,7 +240,7 @@ def export(format):
             flash("Invalid date format")
 
     bookings = query.all()
-    data = [[b.name, b.model, b.phone, b.location, b.date] for b in bookings]
+    data = [[b.name, b.model, b.phone, b.location, b.date.strftime("%Y-%m-%d %H:%M")] for b in bookings]
 
     if format == "excel":
         file = "bookings.xlsx"
@@ -265,6 +265,11 @@ def export(format):
             y -= 20
         c.save()
         return send_file(file, as_attachment=True)
+
+# ---------------- PING ROUTE FOR UPTIME ----------------
+@app.route("/ping")
+def ping():
+    return "alive", 200
 
 # ---------------- LOGOUT ----------------
 
