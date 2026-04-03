@@ -11,13 +11,13 @@ app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
 
-# Use Render-friendly absolute path for SQLite
+# SQLite path
 db_path = os.path.join(app.root_path, "booking.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Default Admin Credentials
+# Admin credentials
 ADMIN_USER = "Tanveer"
 ADMIN_PASS = "998636"
 
@@ -44,7 +44,7 @@ class Vehicle(db.Model):
     image = db.Column(db.String(200))
     badge = db.Column(db.String(50))
 
-# ---------------- LOGIN REQUIRED DECORATOR ----------------
+# ---------------- LOGIN REQUIRED ----------------
 
 def login_required(f):
     @wraps(f)
@@ -79,7 +79,7 @@ def booking():
     # Blogs fetch
     blogs = Blog.query.all()
 
-    # Dynamic banners (safe check)
+    # Dynamic banners
     banners = []
     banner_folder = os.path.join(app.static_folder, "images")
     if os.path.exists(banner_folder):
@@ -88,14 +88,25 @@ def booking():
 
     # Vehicles fetch
     vehicles = Vehicle.query.all()
+    # Optional: category-wise vehicles for easier template filtering
+    scooters = [v for v in vehicles if v.category.lower() == 'scooter']
+    motorcycles = [v for v in vehicles if v.category.lower() == 'motorcycle']
+    electric = [v for v in vehicles if v.category.lower() == 'electric']
 
-    return render_template("booking.html", blogs=blogs, banners=banners, vehicles=vehicles)
+    return render_template(
+        "booking.html",
+        blogs=blogs,
+        banners=banners,
+        vehicles=vehicles,
+        scooters=scooters,
+        motorcycles=motorcycles,
+        electric=electric
+    )
 
 # ---------------- ADMIN LOGIN ----------------
 
 @app.route('/admin', methods=['GET','POST'])
 def admin():
-    global ADMIN_USER, ADMIN_PASS
     if request.method == 'POST':
         if request.form['userid'] == ADMIN_USER and request.form['password'] == ADMIN_PASS:
             session.permanent = True
@@ -247,7 +258,7 @@ def logout():
 with app.app_context():
     db.create_all()
 
-# ---------------- RUN LOCAL ----------------
+# ---------------- RUN ----------------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
