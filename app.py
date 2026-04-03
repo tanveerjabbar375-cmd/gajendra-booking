@@ -188,6 +188,31 @@ def add_vehicle():
     flash("Vehicle added successfully!")
     return redirect(url_for('dashboard'))
 
+@app.route('/edit_vehicle/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_vehicle(id):
+    vehicle = Vehicle.query.get_or_404(id)
+
+    if request.method == 'POST':
+        vehicle.name = request.form['name']
+        vehicle.category = request.form['category']
+        vehicle.price = int(request.form['price'])
+        vehicle.badge = request.form.get('badge')
+
+        image_file = request.files.get('image')
+        if image_file and image_file.filename:
+            filename = image_file.filename
+            upload_path = os.path.join(app.static_folder, 'uploads')
+            os.makedirs(upload_path, exist_ok=True)
+            image_file.save(os.path.join(upload_path, filename))
+            vehicle.image = filename
+
+        db.session.commit()
+        flash("Vehicle updated successfully!")
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_vehicle.html', vehicle=vehicle)
+
 @app.route('/delete_vehicle/<int:id>')
 @login_required
 def delete_vehicle(id):
