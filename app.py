@@ -76,22 +76,19 @@ def booking():
         flash("Booked Successfully! Our executive will call you soon")
         return redirect(url_for('booking'))
 
-    # Blogs fetch
     blogs = Blog.query.all()
 
-    # Dynamic banners
     banners = []
     banner_folder = os.path.join(app.static_folder, "images")
     if os.path.exists(banner_folder):
         banners = [f for f in os.listdir(banner_folder) if f.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))]
         banners.sort()
 
-    # Vehicles fetch
     vehicles = Vehicle.query.all()
-    # Optional: category-wise vehicles for easier template filtering
-    scooters = [v for v in vehicles if v.category.lower() == 'scooter']
-    motorcycles = [v for v in vehicles if v.category.lower() == 'motorcycle']
-    electric = [v for v in vehicles if v.category.lower() == 'electric']
+    # Category-wise vehicles safe handling
+    scooters = [v for v in vehicles if v.category and v.category.lower() == 'scooter']
+    motorcycles = [v for v in vehicles if v.category and v.category.lower() == 'motorcycle']
+    electric = [v for v in vehicles if v.category and v.category.lower() == 'electric']
 
     return render_template(
         "booking.html",
@@ -124,11 +121,11 @@ def admin():
 def dashboard():
     now = datetime.utcnow().timestamp()
 
-    if 'last_activity' in session:
-        if now - session['last_activity'] > 300:
-            session.clear()
-            flash("Session expired. Please login again.")
-            return redirect(url_for('admin'))
+    last_activity = session.get('last_activity')
+    if last_activity and now - last_activity > 300:
+        session.clear()
+        flash("Session expired. Please login again.")
+        return redirect(url_for('admin'))
 
     session['last_activity'] = now
 
