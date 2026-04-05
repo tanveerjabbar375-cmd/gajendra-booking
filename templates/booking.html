@@ -185,7 +185,7 @@
                             <img src="{{ url_for('static', filename='uploads/' + v.image) }}" alt="{{ v.name }}">
                             <h5 style="font-weight:600;">{{ v.name }}</h5>
                             <p style="color:#6b7280; font-size:14px;">{{ v.category }}</p>
-                            <div class="price">₹{{ v.price }}Ex showroom</div>
+                            <div class="price">Ex showroom ₹{{ Number(v.price).toLocaleString('en-IN') }}</div>
                             <button type="button" class="btn-select mt-2" onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">Select</button>
                         </div>
                     </div>
@@ -201,7 +201,7 @@
                             <img src="{{ url_for('static', filename='uploads/' + v.image) }}" alt="{{ v.name }}">
                             <h5 style="font-weight:600;">{{ v.name }}</h5>
                             <p style="color:#6b7280; font-size:14px;">{{ v.category }}</p>
-                            <div class="price">₹{{ v.price }}Ex showroom</div>
+                            <div class="price">Ex showroom ₹{{ Number(v.price).toLocaleString('en-IN') }}</div>
                             <button type="button" class="btn-select mt-2" onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">Select</button>
                         </div>
                     </div>
@@ -217,7 +217,7 @@
                             <img src="{{ url_for('static', filename='uploads/' + v.image) }}" alt="{{ v.name }}">
                             <h5 style="font-weight:600;">{{ v.name }}</h5>
                             <p style="color:#6b7280; font-size:14px;">{{ v.category }}</p>
-                            <div class="price">₹{{ v.price }}Ex showroom</div>
+                            <div class="price">Ex showroom ₹{{ Number(v.price).toLocaleString('en-IN') }}</div>
                             <button type="button" class="btn-select mt-2" onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">Select</button>
                         </div>
                     </div>
@@ -230,11 +230,15 @@
         <div class="bottom-bar">
             <button type="button" class="btn btn-outline-primary">View Details</button>
             <div>
-                <span style="font-weight:500;">Total: ₹<span id="totalPrice">0</span>Ex showroom</span>
+                <span style="font-weight:500;">Total: Ex showroom ₹<span id="totalPrice">0</span></span>
                 <button type="submit" class="btn-proceed ms-3">Book Now</button>
             </div>
         </div>
     </form>
+
+<script>
+    document.getElementById("totalPrice").innerText = price.toLocaleString('en-IN');
+</script>
 
    <!-- Banner Carousel -->
    <div id="offerCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="10000">
