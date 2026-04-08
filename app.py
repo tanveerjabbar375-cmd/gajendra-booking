@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session, abort
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import pandas as pd
 from datetime import datetime, timedelta
 import os
@@ -15,6 +16,7 @@ app.secret_key = "secretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://gajendra_user:AEfojPqfRefvTI4iLU7HCQq9ans0Fv1P@dpg-d781aaudqaus73bff770-a/gajendra_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # ---------------- ADMIN CREDENTIALS ----------------
 ADMIN_USER = "Tanveer"

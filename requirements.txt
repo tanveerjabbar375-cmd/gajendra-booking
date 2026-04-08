@@ -6,3 +6,4 @@ python-docx
 reportlab
 gunicorn
 psycopg2-binary
+Flask-Migrate
