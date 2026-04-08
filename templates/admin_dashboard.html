@@ -3,11 +3,12 @@
 <head>
     <title>Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         body {
             background-color: #f8f9fa;
             font-family: 'Inter', sans-serif;
-            color: #1f2937;
         }
         .container-box {
             width: 90%;
@@ -18,36 +19,41 @@
             top: 15px;
             right: 15px;
             background-color: #ef4444;
-            border: none;
             color: white;
             padding: 8px 15px;
             border-radius: 8px;
+            border: none;
         }
         .logout-btn:hover {
             background-color: #dc2626;
         }
         h3 {
-            font-weight: 600;
             margin-bottom: 20px;
-        }
-        table th, table td {
-            vertical-align: middle !important;
         }
         .vehicle-img {
             height: 60px;
             object-fit: contain;
         }
+        .blog-img {
+            height: 60px;
+            object-fit: cover;
+        }
+        canvas {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
-<body>
 
+<body>
 <div class="container-box">
 
     <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
 
     <!-- BOOKINGS -->
     <h3>Bookings</h3>
-
     <form method="GET" class="mb-3 d-flex gap-2 flex-wrap">
         <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}" class="form-control" required>
         <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}" class="form-control" required>
@@ -55,7 +61,7 @@
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Reset</a>
     </form>
 
-    <table class="table table-bordered table-striped">
+    <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Name</th>
@@ -72,65 +78,79 @@
                 <td>{{ b.model }}</td>
                 <td>{{ b.phone }}</td>
                 <td>{{ b.location }}</td>
-                <td>{{ b.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ b.date.strftime('%Y-%m-%d %H:%M') }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="5" class="text-center">No bookings found.</td></tr>
+            <tr><td colspan="5" class="text-center">No bookings found</td></tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <!-- BLOGS -->
-    <h3>Manage Blogs</h3>
+    <!-- ANALYTICS CHARTS -->
+    <h3>Analytics</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <canvas id="bookingChart"></canvas>
+        </div>
+        <div class="col-md-6">
+            <canvas id="blogChart"></canvas>
+        </div>
+    </div>
 
-    <form method="POST" action="{{ url_for('add_blog') }}" class="mb-4">
+    <!-- BLOGS -->
+    <h3 class="mt-4">Manage Blogs</h3>
+    <form method="POST" action="{{ url_for('add_blog') }}" enctype="multipart/form-data" class="mb-4">
         <input type="text" name="title" placeholder="Blog Title" class="form-control mb-2" required>
         <textarea name="content" placeholder="Blog Content" class="form-control mb-2" required></textarea>
+        <input type="file" name="image" accept="image/*" class="form-control mb-2">
+        <input type="text" name="alt_text" placeholder="Image Alt Text (SEO)" class="form-control mb-2">
         <button class="btn btn-primary">Add Blog</button>
     </form>
 
     <table class="table table-bordered">
         <thead>
             <tr>
+                <th>Image</th>
                 <th>Title</th>
                 <th>Content</th>
+                <th>Alt Text</th>
+                <th>Edit</th>
                 <th>Delete</th>
             </tr>
         </thead>
         <tbody>
             {% for blog in blogs %}
             <tr>
-                <td>{{ blog.title }}</td>
-                <td>{{ blog.content }}</td>
                 <td>
-                    <a href="{{ url_for('delete_blog', id=blog.id) }}" class="btn btn-danger btn-sm">Delete</a>
+                    {% if blog.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + blog.image) }}" class="blog-img">
+                    {% endif %}
                 </td>
+                <td>{{ blog.title }}</td>
+                <td>{{ blog.content[:80] }}...</td>
+                <td>{{ blog.alt_text }}</td>
+                <td><a href="{{ url_for('edit_blog', id=blog.id) }}" class="btn btn-warning btn-sm">Edit</a></td>
+                <td><a href="{{ url_for('delete_blog', id=blog.id) }}" class="btn btn-danger btn-sm">Delete</a></td>
             </tr>
             {% else %}
-            <tr><td colspan="3" class="text-center">No blogs found.</td></tr>
+            <tr><td colspan="6" class="text-center">No blogs found</td></tr>
             {% endfor %}
         </tbody>
     </table>
 
     <!-- VEHICLES -->
-    <h3>Manage Vehicles</h3>
-
+    <h3 class="mt-4">Manage Vehicles</h3>
     <form method="POST" action="{{ url_for('add_vehicle') }}" enctype="multipart/form-data" class="mb-4">
         <input type="text" name="name" placeholder="Vehicle Name" class="form-control mb-2" required>
-
         <select name="category" class="form-control mb-2" required>
             <option value="">Select Category</option>
             <option>Scooter</option>
             <option>Motorcycle</option>
             <option>Electric</option>
         </select>
-
         <input type="number" name="price" placeholder="Ex showroom (₹)" class="form-control mb-2" required>
-
         <input type="text" name="badge" placeholder="Badge (Optional)" class="form-control mb-2">
-
         <input type="file" name="image" accept="image/*" class="form-control mb-2" required>
-
         <button class="btn btn-primary">Add Vehicle</button>
     </form>
 
@@ -140,65 +160,75 @@
                 <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
-                <th>Price/day</th>
+                <th>Price</th>
                 <th>Badge</th>
                 <th>Edit</th>
                 <th>Delete</th>
             </tr>
         </thead>
-
         <tbody>
             {% for v in vehicles %}
             <tr>
-                <td>
-                    <img src="{{ url_for('static', filename='uploads/' + v.image) }}" class="vehicle-img">
-                </td>
+                <td><img src="{{ url_for('static', filename='uploads/' + v.image) }}" class="vehicle-img"></td>
                 <td>{{ v.name }}</td>
                 <td>{{ v.category }}</td>
                 <td>₹{{ v.price }}</td>
                 <td>{{ v.badge or '' }}</td>
-
-                <!-- EDIT BUTTON -->
-                <td>
-                    <a href="{{ url_for('edit_vehicle', id=v.id) }}" class="btn btn-warning btn-sm">
-                        Edit
-                    </a>
-                </td>
-
-                <!-- DELETE BUTTON -->
-                <td>
-                    <a href="{{ url_for('delete_vehicle', id=v.id) }}" class="btn btn-danger btn-sm">
-                        Delete
-                    </a>
-                </td>
+                <td><a href="{{ url_for('edit_vehicle', id=v.id) }}" class="btn btn-warning btn-sm">Edit</a></td>
+                <td><a href="{{ url_for('delete_vehicle', id=v.id) }}" class="btn btn-danger btn-sm">Delete</a></td>
             </tr>
-
             {% else %}
-            <tr>
-                <td colspan="7" class="text-center">No vehicles added.</td>
-            </tr>
+            <tr><td colspan="7" class="text-center">No vehicles added</td></tr>
             {% endfor %}
         </tbody>
     </table>
 
     <!-- EXPORT -->
-    <h3>Export Bookings</h3>
-
-    <a href="{{ url_for('export', format='excel', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">
-        Export Excel
-    </a>
-
-    <a href="{{ url_for('export', format='word', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">
-        Export Word
-    </a>
-
-    <a href="{{ url_for('export', format='pdf', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary">
-        Export PDF
-    </a>
+    <h3 class="mt-4">Export Bookings</h3>
+    <a href="{{ url_for('export', format='excel', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">Excel</a>
+    <a href="{{ url_for('export', format='word', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary me-2">Word</a>
+    <a href="{{ url_for('export', format='pdf', from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" class="btn btn-outline-primary">PDF</a>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const bookingLabels = {{ booking_counts.keys()|list|tojson }};
+    const bookingData = {{ booking_counts.values()|list|tojson }};
 
+    const blogLabels = {{ blog_views.keys()|list|tojson }};
+    const blogData = {{ blog_views.values()|list|tojson }};
+
+    const bookingChart = new Chart(document.getElementById('bookingChart'), {
+        type: 'bar',
+        data: {
+            labels: bookingLabels,
+            datasets: [{
+                label: 'Bookings per Month',
+                data: bookingData,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    const blogChart = new Chart(document.getElementById('blogChart'), {
+        type: 'bar',
+        data: {
+            labels: blogLabels,
+            datasets: [{
+                label: 'Blog Views',
+                data: blogData,
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

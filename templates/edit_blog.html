@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Blog</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-4">
+    <h3>Edit Blog</h3>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="text" name="title" value="{{ blog.title }}" class="form-control mb-2" required>
+
+        <textarea name="content" class="form-control mb-2" required>{{ blog.content }}</textarea>
+
+        <input type="file" name="image" class="form-control mb-2">
+
+        <input type="text" name="alt_text" value="{{ blog.alt_text }}" placeholder="Alt text" class="form-control mb-2">
+
+        <button class="btn btn-success">Update Blog</button>
+    </form>
+</div>
+
+</body>
+</html>
