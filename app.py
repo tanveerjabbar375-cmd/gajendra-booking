@@ -12,7 +12,7 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
 
 # ---------------- POSTGRES CONFIG ----------------
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://gajendra_user:AEfojPqfRefvTI4iLU7HCQq9ans0Fv1@dpg-d781aaudqaus73bff770-a/gajendra_db"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://gajendra_user:AEfojPqfRefvTI4iLU7HCQq9ans0Fv1P@dpg-d781aaudqaus73bff770-a/gajendra_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
