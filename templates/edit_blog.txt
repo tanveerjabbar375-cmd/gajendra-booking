@@ -1,0 +1,11 @@
+@app.route('/edit_blog/<int:id>', methods=['GET','POST'])
+@login_required
+def edit_blog(id):
+    blog = Blog.query.get_or_404(id)
+    if request.method == 'POST':
+        blog.title = request.form['title']
+        blog.content = request.form['content']
+        db.session.commit()
+        flash("Blog updated successfully!")
+        return redirect(url_for('dashboard'))
+    return render_template('edit_blog.html', blog=blog)
