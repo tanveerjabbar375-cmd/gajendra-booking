@@ -248,6 +248,39 @@ def add_vehicle():
 
     return redirect(url_for("dashboard"))
 
+# ---------------- EDIT VEHICLE ----------------
+@app.route("/edit_vehicle/<int:id>", methods=["GET", "POST"])
+@login_required
+def edit_vehicle(id):
+    vehicle = Vehicle.query.get_or_404(id)
+
+    if request.method == "POST":
+        vehicle.name = request.form["name"]
+        vehicle.category = request.form["category"]
+        vehicle.price = int(request.form["price"])
+        vehicle.badge = request.form.get("badge")
+
+        file = request.files.get("image")
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            vehicle.image = filename
+
+        db.session.commit()
+        flash("Vehicle updated successfully")
+        return redirect(url_for("dashboard"))
+
+    return render_template("edit_vehicle.html", vehicle=vehicle)
+
+@app.route("/delete_vehicle/<int:id>")
+@login_required
+def delete_vehicle(id):
+    vehicle = Vehicle.query.get_or_404(id)
+    db.session.delete(vehicle)
+    db.session.commit()
+    flash("Vehicle deleted")
+    return redirect(url_for("dashboard"))
+
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
 @login_required
