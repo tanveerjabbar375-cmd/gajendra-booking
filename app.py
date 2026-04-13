@@ -8,19 +8,25 @@ from reportlab.pdfgen import canvas
 from functools import wraps
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
+from flask_migrate import Migrate
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(minutes=5)
 app.secret_key = "secretkey"
 
 # ---------------- CONFIG ----------------
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://gajendra_user:AEfojPqfRefvTI4iLU7HCQq9ans0Fv1P@dpg-d781aaudqaus73bff770-a/gajendra_db"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # ---------------- ADMIN ----------------
 ADMIN_USER = "Tanveer"
@@ -290,13 +296,6 @@ def export(format):
 def logout():
     session.clear()
     return redirect(url_for('admin'))
-
-@app.route('/fix-db')
-def fix_db():
-    from sqlalchemy import text
-    db.session.execute(text("ALTER TABLE blog ADD COLUMN image VARCHAR(200);"))
-    db.session.commit()
-    return "Blog image column added!"
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
