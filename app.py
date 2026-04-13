@@ -293,8 +293,10 @@ def logout():
 
 @app.route('/fix-db')
 def fix_db():
-    db.create_all()
-    return "Database fixed!"
+    from sqlalchemy import text
+    db.session.execute(text("ALTER TABLE blog ADD COLUMN image VARCHAR(200);"))
+    db.session.commit()
+    return "Blog image column added!"
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
