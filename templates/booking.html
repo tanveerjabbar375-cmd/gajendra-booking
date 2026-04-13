@@ -2,127 +2,89 @@
 <html>
 <head>
     <title>Book Two Wheeler</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
         body{
             background-color:#f5f7fb;
             font-family: 'Inter', sans-serif;
-            color: #1f2937;
         }
+
         .form-container{
             width:85%;
             margin:40px auto;
         }
-        h3{
-            font-weight:600;
-            margin-bottom:20px;
-            color: #111827;
+
+        .logo{
+            height:60px;
+            margin-bottom:15px;
         }
-        .btn-primary{
-            padding:5px 14px;
-            font-size:14px;
-            background-color: #2563eb;
-            border-radius: 8px;
-            font-weight: 500;
-            border:none;
-        }
-        .btn-primary:hover{
-            background-color: #1d4ed8;
-        }
-        .banner-img {
-            width: 100%;
-            height: auto;
-            max-height: 500px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-        }
-        #offerCarousel {
-            text-align: center;
-            overflow: hidden;
-        }
+
         .card {
             border-radius: 12px;
             border: 1px solid #e5e7eb;
             padding: 1rem;
             text-align: center;
-            position: relative;
         }
+
         .card img {
             height: 150px;
             object-fit: contain;
-            margin-bottom: 10px;
         }
+
         .price {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
-            color: #111827;
         }
-        .badge-offer {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: #ef4444;
-            color: white;
-            padding: 4px 10px;
-            font-size: 12px;
-            border-radius: 6px;
-        }
+
         .btn-select {
             background-color: #2563eb;
+            color: white;
             border: none;
+            padding: 6px 12px;
             border-radius: 8px;
-            font-weight: 500;
-            padding: 6px 14px;
-            color: white;
         }
-        .btn-select:hover {
-            background-color: #1d4ed8;
-            color: white;
-        }
-        .bottom-bar {
-            border-top: 1px solid #e5e7eb;
-            margin-top: 40px;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+
         .btn-proceed {
             background-color: #ef4444;
+            color: white;
             border: none;
+            padding: 10px 25px;
             border-radius: 8px;
-            padding: 10px 24px;
             font-weight: 600;
-            color: white;
         }
-        .btn-proceed:hover {
-            background-color: #dc2626;
-            color: white;
+
+        .blog-card {
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .nav-tabs .nav-link.active {
-            background-color: #2563eb;
-            color: white;
+
+        .blog-card:hover {
+            transform: scale(1.02);
+        }
+
+        .blog-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
             border-radius: 8px;
-        }
-        .nav-tabs .nav-link {
-            border-radius: 8px;
-        }
-        @media(max-width:768px){
-            .form-container { width: 95%; margin: 20px auto; }
-            .card { margin-bottom: 20px; }
-            .price { font-size: 18px; }
-            .btn-proceed { width: 100%; padding: 12px; font-size: 16px; }
-            .bottom-bar { flex-direction: column; gap: 10px; }
+            margin-bottom: 10px;
         }
     </style>
 </head>
+
 <body>
 
 <div class="form-container">
 
-    <h3>Book Your Two Wheeler</h3>
+    <!-- ================= LOGO ================= -->
+    <div class="text-center">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo">
+    </div>
+
+    <h3 class="mb-3">Book Your Two Wheeler</h3>
 
     {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -131,123 +93,150 @@
     {% endwith %}
 
     <form method="POST" onsubmit="return validateSelection()">
-        <input type="text" name="name" class="form-control mb-3" placeholder="Name" required>
-        <input type="text" name="phone" class="form-control mb-3" placeholder="Phone" required>
+
+        <input type="text" name="name" class="form-control mb-2" placeholder="Name" required>
+        <input type="text" name="phone" class="form-control mb-2" placeholder="Phone" required>
 
         <select name="location" class="form-control mb-3" required>
             <option value="">Select Location</option>
-            {% for loc in ['Ballari','Bengalore','Belgaum','Bharamasagara','Bidar','Bijapur','Challakere','Chikmagalur','Chitradurga','Davanagere','Dharwad','Dandeli','Hasan','Hiriyur','Hospet','Hosadurga','Hubli','Kalaburagi','Mangakuru','Mysore','Nayakanahatty','Raichur','Ranebennur','Shimoga','Tumkur','Tarikere','Udupi'] %}
-            <option>{{ loc }}</option>
-            {% endfor %}
+            <option>Bangalore</option>
+            <option>Mysore</option>
+            <option>Hubli</option>
         </select>
 
         <input type="hidden" name="selected_model" id="selectedModel">
 
-        <ul class="nav nav-tabs mb-3" id="vehicleTabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="motorcycle-tab" data-bs-toggle="tab" data-bs-target="#motorcycle" type="button" role="tab">Motorcycle</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="scooter-tab" data-bs-toggle="tab" data-bs-target="#scooter" type="button" role="tab">Scooter</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="electric-tab" data-bs-toggle="tab" data-bs-target="#electric" type="button" role="tab">EV</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="blogs-tab" data-bs-toggle="tab" data-bs-target="#blogs" type="button" role="tab">Blogs</button>
-          </li>
+        <!-- ================= VEHICLE TABS ================= -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#motorcycle">Motorcycle</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#scooter">Scooter</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#electric">EV</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#blogs">Blogs</button></li>
         </ul>
 
         <div class="tab-content">
-    {% for category, vehicles in [('motorcycle', motorcycles), ('scooter', scooters), ('electric', electric)] %}
-    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ category }}">
-        <div class="row">
-            {% for v in vehicles %}
-            <div class="col-md-4 mb-4">
-                <div class="card position-relative">
-                    {% if v.badge %}<div class="badge-offer">{{ v.badge }}</div>{% endif %}
-                    <img src="{{ url_for('static', filename='uploads/' + v.image) }}" alt="{{ v.name }}">
-                    <h5 style="font-weight:600;">{{ v.name }}</h5>
-                    <p style="color:#6b7280; font-size:14px;">{{ v.category }}</p>
-                    <div class="price">Ex showroom ₹<span class="price-value">{{ v.price }}</span></div>
-                    <button type="button" class="btn-select mt-2" onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">Select</button>
+
+            <!-- ================= VEHICLES ================= -->
+            {% for category, vehicles in [('motorcycle', motorcycles), ('scooter', scooters), ('electric', electric)] %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ category }}">
+
+                <div class="row">
+                    {% for v in vehicles %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            {% if v.badge %}
+                            <span class="badge bg-danger">{{ v.badge }}</span>
+                            {% endif %}
+
+                            <img src="{{ url_for('static', filename='uploads/' + v.image) }}">
+
+                            <h5>{{ v.name }}</h5>
+                            <p>{{ v.category }}</p>
+
+                            <div class="price">₹{{ v.price }}</div>
+
+                            <button type="button"
+                                    class="btn-select mt-2"
+                                    onclick="selectVehicle('{{ v.name }}', {{ v.price }}, this)">
+                                Select
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
+
             </div>
             {% endfor %}
-        </div>
-    </div>
-    {% endfor %}
 
-    <!-- Blogs Tab -->
-    <div class="tab-pane fade" id="blogs">
-        <div class="row">
-            {% for blog in blogs %}
-            <div class="col-md-4 mb-4">
-                <div class="card p-3">
-                    <h5 style="font-weight:600;">{{ blog.title }}</h5>
-                    <p style="color:#6b7280; font-size:14px;">
-                        {{ blog.content[:100] }}{% if blog.content|length > 100 %}...{% endif %}
-                    </p>
+            <!-- ================= BLOGS (UPDATED) ================= -->
+            <div class="tab-pane fade" id="blogs">
+
+                <div class="row">
+
+                    {% for blog in blogs %}
+                    <div class="col-md-4 mb-3">
+
+                        <a href="{{ url_for('view_blog', id=blog.id) }}" style="text-decoration:none; color:inherit;">
+
+                            <div class="card blog-card">
+
+                                {% if blog.image %}
+                                <img src="{{ url_for('static', filename='uploads/' + blog.image) }}" class="blog-img">
+                                {% endif %}
+
+                                <h5>{{ blog.title }}</h5>
+
+                                <p>
+                                    {{ blog.content[:100] }}{% if blog.content|length > 100 %}...{% endif %}
+                                </p>
+
+                            </div>
+
+                        </a>
+
+                    </div>
+                    {% else %}
+                    <p class="text-center">No blogs available</p>
+                    {% endfor %}
+
                 </div>
-            </div>
-            {% else %}
-            <p class="text-center">No blogs available.</p>
-            {% endfor %}
-        </div>
-    </div>
-</div>
 
-        <div class="bottom-bar">
+            </div>
+
+        </div>
+
+        <!-- ================= BOTTOM BAR ================= -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+
             <div>
-                <span style="font-weight:500;">Total: Ex showroom ₹<span id="totalPrice">0</span></span>
-                <button type="submit" class="btn-proceed ms-3">Book Now</button>
+                Total: ₹ <span id="totalPrice">0</span>
             </div>
+
+            <button type="submit" class="btn-proceed">Book Now</button>
+
         </div>
+
     </form>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Format all vehicle prices with commas
-    document.querySelectorAll('.price-value').forEach(el=>{
-        el.innerText = Number(el.innerText).toLocaleString('en-IN');
+let selectedVehicle = null;
+
+function selectVehicle(name, price, btn){
+
+    const input = document.getElementById("selectedModel");
+    const total = document.getElementById("totalPrice");
+
+    if(selectedVehicle === btn){
+        selectedVehicle = null;
+        input.value = "";
+        total.innerText = "0";
+        btn.innerText = "Select";
+        return;
+    }
+
+    selectedVehicle = btn;
+    input.value = name;
+    total.innerText = price;
+
+    document.querySelectorAll(".btn-select").forEach(b=>{
+        if(b !== btn) b.innerText = "Select";
     });
 
-    let selectedVehicle = null;
+    btn.innerText = "Selected";
+}
 
-    function selectVehicle(name, price, btn){
-        const totalPriceElem = document.getElementById("totalPrice");
-        const selectedInput = document.getElementById("selectedModel");
-
-        if(selectedVehicle === btn){
-            selectedVehicle = null;
-            selectedInput.value = "";
-            totalPriceElem.innerText = "0";
-            btn.innerText = "Select";
-            return;
-        }
-
-        selectedVehicle = btn;
-        selectedInput.value = name;
-        totalPriceElem.innerText = Number(price).toLocaleString('en-IN');
-
-        document.querySelectorAll(".btn-select").forEach(b=>{
-            if(b !== btn) b.innerText = "Select";
-        });
-
-        btn.innerText = "Selected";
+function validateSelection(){
+    if(!document.getElementById("selectedModel").value){
+        alert("Please select a vehicle");
+        return false;
     }
-
-    function validateSelection(){
-        const selected = document.getElementById("selectedModel").value;
-        if(!selected){
-            alert("Please select a vehicle before booking.");
-            return false;
-        }
-        return true;
-    }
+    return true;
+}
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
