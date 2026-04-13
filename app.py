@@ -291,6 +291,11 @@ def logout():
     session.clear()
     return redirect(url_for('admin'))
 
+@app.route('/fix-db')
+def fix_db():
+    db.create_all()
+    return "Database fixed!"
+
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
