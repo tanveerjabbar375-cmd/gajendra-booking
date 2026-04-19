@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
@@ -7,9 +7,7 @@ from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import os
-import pandas as pd
-from docx import Document
-from reportlab.pdfgen import canvas
+import uuid
 
 # ---------------- LOAD ENV ----------------
 load_dotenv()
@@ -23,7 +21,6 @@ app.secret_key = os.getenv("SECRET_KEY", "secretkey")
 # ---------------- DATABASE CONFIG ----------------
 uri = os.getenv("DATABASE_URL")
 
-# Render fix (IMPORTANT)
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
 
@@ -39,10 +36,11 @@ UPLOAD_FOLDER = os.path.join("static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------------- ADMIN ----------------
-ADMIN_USER = "Tanveer"
-ADMIN_PASS = "998636"
+ADMIN_USER = os.getenv("ADMIN_USER", "Tanveer")
+ADMIN_PASS = os.getenv("ADMIN_PASS", "998636")
 
 # ---------------- MODELS ----------------
+
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -55,8 +53,7 @@ class Booking(db.Model):
 class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))
-    content = db.Column(db.Text)
-    image = db.Column(db.String(200))   # NEW FIELD
+    content = db.Column(db.Text)  # HTML content (CKEditor)
 
 
 class Vehicle(db.Model):
@@ -64,8 +61,31 @@ class Vehicle(db.Model):
     name = db.Column(db.String(100))
     category = db.Column(db.String(50))
     price = db.Column(db.Integer)
-    image = db.Column(db.String(200))
     badge = db.Column(db.String(50))
+
+    images = db.relationship('VehicleImage', backref='vehicle', cascade="all, delete")
+
+
+class VehicleImage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'))
+    image = db.Column(db.String(200))
+
+
+# ---------------- SESSION TIMEOUT GLOBAL ----------------
+@app.before_request
+def session_timeout():
+    if "admin_logged_in" in session:
+        now = datetime.utcnow().timestamp()
+        last = session.get("last_activity")
+
+        if last and now - last > 300:
+            session.clear()
+            flash("Session expired")
+            return redirect(url_for("admin"))
+
+        session["last_activity"] = now
+
 
 # ---------------- LOGIN REQUIRED ----------------
 def login_required(f):
@@ -77,14 +97,16 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+
 # ---------------- BOOKING PAGE ----------------
 @app.route("/", methods=["GET", "POST"])
 def booking():
     if request.method == "POST":
+
         selected_model = request.form.get("selected_model")
 
         if not selected_model:
-            flash("Please select a vehicle to book.")
+            flash("Please select a vehicle")
             return redirect(url_for("booking"))
 
         booking = Booking(
@@ -97,30 +119,31 @@ def booking():
         db.session.add(booking)
         db.session.commit()
 
-        flash("Booked Successfully! Our executive will call you soon")
+        flash("Booked Successfully!")
         return redirect(url_for("booking"))
 
     blogs = Blog.query.all()
     vehicles = Vehicle.query.all()
 
-    scooters = [v for v in vehicles if v.category and v.category.lower() == "scooter"]
-    motorcycles = [v for v in vehicles if v.category and v.category.lower() == "motorcycle"]
-    electric = [v for v in vehicles if v.category and v.category.lower() == "electric"]
+    scooters = [v for v in vehicles if v.category.lower() == "scooter"]
+    motorcycles = [v for v in vehicles if v.category.lower() == "motorcycle"]
+    electric = [v for v in vehicles if v.category.lower() == "electric"]
 
     return render_template(
         "booking.html",
         blogs=blogs,
-        vehicles=vehicles,
         scooters=scooters,
         motorcycles=motorcycles,
         electric=electric
     )
+
 
 # ---------------- BLOG VIEW ----------------
 @app.route("/blog/<int:id>")
 def view_blog(id):
     blog = Blog.query.get_or_404(id)
     return render_template("blog_view.html", blog=blog)
+
 
 # ---------------- ADMIN LOGIN ----------------
 @app.route("/admin", methods=["GET", "POST"])
@@ -130,24 +153,16 @@ def admin():
             session["admin_logged_in"] = True
             session["last_activity"] = datetime.utcnow().timestamp()
             return redirect(url_for("dashboard"))
+
         flash("Invalid Credentials")
+
     return render_template("admin_login.html")
 
-# ---------------- DASHBOARD + ANALYTICS ----------------
+
+# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
-
-    # session timeout
-    now = datetime.utcnow().timestamp()
-    last = session.get("last_activity")
-
-    if last and now - last > 300:
-        session.clear()
-        flash("Session expired")
-        return redirect(url_for("admin"))
-
-    session["last_activity"] = now
 
     bookings = Booking.query.all()
     blogs = Blog.query.all()
@@ -166,17 +181,6 @@ def dashboard():
     dates = [str(x[0]) for x in bookings_per_day]
     counts = [x[1] for x in bookings_per_day]
 
-    top_vehicles = db.session.query(
-        Booking.model,
-        func.count(Booking.id)
-    ).group_by(Booking.model)\
-     .order_by(func.count(Booking.id).desc()).limit(5).all()
-
-    locations = db.session.query(
-        Booking.location,
-        func.count(Booking.id)
-    ).group_by(Booking.location).all()
-
     return render_template(
         "admin_dashboard.html",
         bookings=bookings,
@@ -184,102 +188,105 @@ def dashboard():
         vehicles=vehicles,
         total_bookings=total_bookings,
         dates=dates,
-        counts=counts,
-        top_vehicles=top_vehicles,
-        locations=locations
+        counts=counts
     )
+
 
 # ---------------- ADD BLOG ----------------
 @app.route("/add_blog", methods=["POST"])
 @login_required
 def add_blog():
 
-    file = request.files.get("image")
-    filename = None
-
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-
     blog = Blog(
         title=request.form["title"],
-        content=request.form["content"],
-        image=filename
+        content=request.form["content"]  # HTML from CKEditor
     )
 
     db.session.add(blog)
     db.session.commit()
 
-    flash("Blog added successfully")
+    flash("Blog added")
     return redirect(url_for("dashboard"))
+
 
 # ---------------- DELETE BLOG ----------------
 @app.route("/delete_blog/<int:id>")
 @login_required
 def delete_blog(id):
-    blog = Blog.query.get(id)
-    if blog:
-        db.session.delete(blog)
-        db.session.commit()
+    blog = Blog.query.get_or_404(id)
+    db.session.delete(blog)
+    db.session.commit()
     return redirect(url_for("dashboard"))
 
-# ---------------- VEHICLES ----------------
+
+# ---------------- CKEDITOR IMAGE UPLOAD ----------------
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    file = request.files.get('upload')
+
+    if not file:
+        return jsonify({"uploaded": 0})
+
+    filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+    file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+    url = url_for('static', filename='uploads/' + filename)
+
+    return jsonify({
+        "uploaded": 1,
+        "fileName": filename,
+        "url": url
+    })
+
+
+# ---------------- ADD VEHICLE ----------------
 @app.route("/add_vehicle", methods=["POST"])
 @login_required
 def add_vehicle():
 
-    file = request.files.get("image")
-    filename = None
-
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+    files = request.files.getlist("images")
 
     vehicle = Vehicle(
         name=request.form["name"],
         category=request.form["category"],
         price=int(request.form["price"]),
-        badge=request.form.get("badge"),
-        image=filename
+        badge=request.form.get("badge")
     )
 
     db.session.add(vehicle)
     db.session.commit()
 
+    for file in files:
+        if file and file.filename:
+            filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+            img = VehicleImage(vehicle_id=vehicle.id, image=filename)
+            db.session.add(img)
+
+    db.session.commit()
+
     return redirect(url_for("dashboard"))
 
-# ---------------- EDIT VEHICLE ----------------
-@app.route("/edit_vehicle/<int:id>", methods=["GET", "POST"])
-@login_required
-def edit_vehicle(id):
-    vehicle = Vehicle.query.get_or_404(id)
 
-    if request.method == "POST":
-        vehicle.name = request.form["name"]
-        vehicle.category = request.form["category"]
-        vehicle.price = int(request.form["price"])
-        vehicle.badge = request.form.get("badge")
-
-        file = request.files.get("image")
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            vehicle.image = filename
-
-        db.session.commit()
-        flash("Vehicle updated successfully")
-        return redirect(url_for("dashboard"))
-
-    return render_template("edit_vehicle.html", vehicle=vehicle)
-
+# ---------------- DELETE VEHICLE ----------------
 @app.route("/delete_vehicle/<int:id>")
 @login_required
 def delete_vehicle(id):
     vehicle = Vehicle.query.get_or_404(id)
+
+    # delete images from folder
+    for img in vehicle.images:
+        path = os.path.join(UPLOAD_FOLDER, img.image)
+        if os.path.exists(path):
+            os.remove(path)
+
     db.session.delete(vehicle)
     db.session.commit()
+
     flash("Vehicle deleted")
     return redirect(url_for("dashboard"))
+
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
@@ -287,6 +294,7 @@ def delete_vehicle(id):
 def logout():
     session.clear()
     return redirect(url_for("admin"))
+
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
