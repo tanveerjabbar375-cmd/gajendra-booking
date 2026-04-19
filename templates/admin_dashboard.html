@@ -1,216 +1,211 @@
 <!DOCTYPE html>
-
 <html>
 <head>
     <title>Admin Dashboard</title>
 
-```
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<!-- CKEDITOR -->
-<script src="https://cdn.ckeditor.com/4.21.1/standard/ckeditor.js"></script>
+    <script src="https://cdn.ckeditor.com/4.25.1-lts/standard/ckeditor.js"></script>
 
-<style>
-    body {
-        background-color: #f8f9fa;
-        font-family: 'Inter', sans-serif;
-    }
+    <style>
+        body {
+            background: #f5f7fb;
+            font-family: Arial;
+        }
 
-    .container-box {
-        width: 92%;
-        margin: 30px auto;
-    }
+        .container-box {
+            width: 92%;
+            margin: 20px auto;
+        }
 
-    .logout-btn {
-        position: fixed;
-        top: 15px;
-        right: 15px;
-        background: #ef4444;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 8px;
-    }
+        .logout-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: red;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
 
-    .card-box {
-        padding: 20px;
-        border-radius: 12px;
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        text-align: center;
-    }
-
-    .vehicle-img {
-        height: 60px;
-        object-fit: cover;
-        border-radius: 6px;
-        margin: 2px;
-    }
-
-    .blog-preview {
-        max-height: 80px;
-        overflow: hidden;
-    }
-</style>
-```
-
+        .card-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="container-box">
-
-```
 <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
 
-<!-- ================= ANALYTICS ================= -->
-<h3 class="mb-3">📊 Analytics</h3>
+<div class="container-box">
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card-box">
-            <h5>Total Bookings</h5>
-            <h2>{{ total_bookings }}</h2>
+    <h2 class="mb-3">Admin Panel</h2>
+
+    <!-- ================= TABS ================= -->
+    <ul class="nav nav-tabs" id="adminTabs">
+
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#analytics">
+                📊 Analytics
+            </button>
+        </li>
+
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#bookings">
+                📅 Bookings
+            </button>
+        </li>
+
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#manage">
+                📝 Blogs & 🚗 Vehicles
+            </button>
+        </li>
+
+    </ul>
+
+    <div class="tab-content mt-3">
+
+        <!-- ================= ANALYTICS ================= -->
+        <div class="tab-pane fade show active" id="analytics">
+
+            <div class="card-box mb-3">
+                <h5>Total Bookings</h5>
+                <h2>{{ total_bookings }}</h2>
+            </div>
+
+            <div class="card-box">
+                <h5>Last 7 Days Bookings</h5>
+                <canvas id="chart"></canvas>
+            </div>
+
         </div>
+
+        <!-- ================= BOOKINGS ================= -->
+        <div class="tab-pane fade" id="bookings">
+
+            <div class="card-box">
+
+                <h4>All Bookings</h4>
+
+                <table class="table table-bordered mt-3">
+                    <tr>
+                        <th>Name</th>
+                        <th>Model</th>
+                        <th>Phone</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                    </tr>
+
+                    {% for b in bookings %}
+                    <tr>
+                        <td>{{ b.name }}</td>
+                        <td>{{ b.model }}</td>
+                        <td>{{ b.phone }}</td>
+                        <td>{{ b.location }}</td>
+                        <td>{{ b.date }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+            </div>
+
+        </div>
+
+        <!-- ================= BLOG + VEHICLE ================= -->
+        <div class="tab-pane fade" id="manage">
+
+            <div class="row">
+
+                <!-- BLOGS -->
+                <div class="col-md-6">
+
+                    <div class="card-box">
+
+                        <h4>📝 Blogs</h4>
+
+                        <form method="POST" action="/add_blog">
+                            <input type="text" name="title" class="form-control mb-2" placeholder="Title">
+
+                            <textarea name="content" id="editor"></textarea>
+
+                            <button class="btn btn-primary mt-2">Add Blog</button>
+                        </form>
+
+                        <hr>
+
+                        {% for blog in blogs %}
+                        <div class="border p-2 mb-2">
+                            <b>{{ blog.title }}</b>
+
+                            <a href="/delete_blog/{{ blog.id }}" class="btn btn-danger btn-sm float-end">Delete</a>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+                <!-- VEHICLES -->
+                <div class="col-md-6">
+
+                    <div class="card-box">
+
+                        <h4>🚗 Vehicles</h4>
+
+                        <form method="POST" action="/add_vehicle" enctype="multipart/form-data">
+
+                            <input type="text" name="name" class="form-control mb-2" placeholder="Name">
+
+                            <select name="category" class="form-control mb-2">
+                                <option>Motorcycle</option>
+                                <option>Scooter</option>
+                                <option>Electric</option>
+                            </select>
+
+                            <input type="number" name="price" class="form-control mb-2" placeholder="Price">
+
+                            <input type="text" name="badge" class="form-control mb-2" placeholder="Badge">
+
+                            <input type="file" name="images" class="form-control mb-2" multiple>
+
+                            <button class="btn btn-success">Add Vehicle</button>
+
+                        </form>
+
+                        <hr>
+
+                        {% for v in vehicles %}
+                        <div class="border p-2 mb-2">
+
+                            <b>{{ v.name }}</b>
+
+                            <a href="/delete_vehicle/{{ v.id }}" class="btn btn-danger btn-sm float-end">Delete</a>
+
+                        </div>
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
-</div>
-
-<div class="card-box mb-5">
-    <h5>Bookings (Last 7 Days)</h5>
-    <canvas id="bookingChart"></canvas>
-</div>
-
-<!-- ================= BOOKINGS ================= -->
-<h3>Bookings</h3>
-
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Model</th>
-            <th>Phone</th>
-            <th>Location</th>
-            <th>Date</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for b in bookings %}
-        <tr>
-            <td>{{ b.name }}</td>
-            <td>{{ b.model }}</td>
-            <td>{{ b.phone }}</td>
-            <td>{{ b.location }}</td>
-            <td>{{ b.date.strftime('%Y-%m-%d %H:%M') }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- ================= BLOG SECTION ================= -->
-<h3 class="mt-5">📝 Manage Blogs</h3>
-
-<form method="POST" action="{{ url_for('add_blog') }}" class="mb-4">
-    <input type="text" name="title" class="form-control mb-2" placeholder="Blog Title" required>
-
-    <!-- CKEDITOR -->
-    <textarea name="content" id="editor" class="form-control mb-2"></textarea>
-
-    <button class="btn btn-primary">Publish Blog</button>
-</form>
-
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Preview</th>
-            <th>Delete</th>
-        </tr>
-    </thead>
-
-    <tbody>
-        {% for blog in blogs %}
-        <tr>
-            <td>{{ blog.title }}</td>
-            <td class="blog-preview">
-                {{ blog.content | safe }}
-            </td>
-            <td>
-                <a href="{{ url_for('delete_blog', id=blog.id) }}" class="btn btn-danger btn-sm">Delete</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- ================= VEHICLES ================= -->
-<h3 class="mt-5">🚗 Manage Vehicles</h3>
-
-<form method="POST" action="{{ url_for('add_vehicle') }}" enctype="multipart/form-data" class="mb-4">
-
-    <input type="text" name="name" class="form-control mb-2" placeholder="Vehicle Name" required>
-
-    <select name="category" class="form-control mb-2" required>
-        <option value="">Select Category</option>
-        <option>Scooter</option>
-        <option>Motorcycle</option>
-        <option>Electric</option>
-    </select>
-
-    <input type="number" name="price" class="form-control mb-2" placeholder="Price" required>
-
-    <input type="text" name="badge" class="form-control mb-2" placeholder="Badge (Optional)">
-
-    <!-- MULTIPLE IMAGES -->
-    <input type="file" name="images" class="form-control mb-2" multiple required>
-
-    <button class="btn btn-primary">Add Vehicle</button>
-</form>
-
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Images</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Badge</th>
-            <th>Delete</th>
-        </tr>
-    </thead>
-
-    <tbody>
-        {% for v in vehicles %}
-        <tr>
-
-            <td>
-                {% for img in v.images %}
-                    <img src="{{ url_for('static', filename='uploads/' + img.image) }}" class="vehicle-img">
-                {% endfor %}
-            </td>
-
-            <td>{{ v.name }}</td>
-            <td>{{ v.category }}</td>
-            <td>₹{{ v.price }}</td>
-            <td>{{ v.badge or '' }}</td>
-
-            <td>
-                <a href="{{ url_for('delete_vehicle', id=v.id) }}" class="btn btn-danger btn-sm">Delete</a>
-            </td>
-
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-```
 
 </div>
 
-<!-- ================= CHART ================= -->
-
+<!-- CHART -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-const ctx = document.getElementById('bookingChart');
+const ctx = document.getElementById('chart');
 
 new Chart(ctx, {
     type: 'bar',
@@ -219,23 +214,18 @@ new Chart(ctx, {
         datasets: [{
             label: 'Bookings',
             data: {{ counts | tojson }},
-            backgroundColor: '#2563eb'
+            backgroundColor: 'blue'
         }]
-    },
-    options: {
-        responsive: true
     }
 });
 </script>
 
-<!-- ================= CKEDITOR INIT ================= -->
-
+<!-- CKEDITOR -->
 <script>
-CKEDITOR.replace('editor', {
-    filebrowserUploadUrl: '/upload_image',
-    filebrowserUploadMethod: 'form'
-});
+CKEDITOR.replace('editor');
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

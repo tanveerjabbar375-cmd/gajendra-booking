@@ -246,6 +246,10 @@ def add_vehicle():
 
     files = request.files.getlist("images")
 
+    if not files or files[0].filename == "":
+        flash("Please upload at least one image")
+        return redirect(url_for("dashboard"))
+
     vehicle = Vehicle(
         name=request.form["name"],
         category=request.form["category"],
@@ -266,8 +270,44 @@ def add_vehicle():
 
     db.session.commit()
 
+    flash("Vehicle added successfully")
     return redirect(url_for("dashboard"))
 
+# ---------------- EDIT VEHICLE ----------------
+@app.route("/edit_vehicle/<int:id>", methods=["GET", "POST"])
+@login_required
+def edit_vehicle(id):
+
+    vehicle = Vehicle.query.get_or_404(id)
+
+    if request.method == "POST":
+
+        # UPDATE BASIC DETAILS
+        vehicle.name = request.form["name"]
+        vehicle.category = request.form["category"]
+        vehicle.price = int(request.form["price"])
+        vehicle.badge = request.form.get("badge")
+
+        # NEW IMAGES (optional)
+        files = request.files.getlist("images")
+
+        for file in files:
+            if file and file.filename:
+                filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+                img = VehicleImage(
+                    vehicle_id=vehicle.id,
+                    image=filename
+                )
+                db.session.add(img)
+
+        db.session.commit()
+
+        flash("Vehicle updated successfully")
+        return redirect(url_for("dashboard"))
+
+    return render_template("edit_vehicle.html", vehicle=vehicle)
 
 # ---------------- DELETE VEHICLE ----------------
 @app.route("/delete_vehicle/<int:id>")
