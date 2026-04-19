@@ -119,7 +119,7 @@ def booking():
         db.session.add(booking)
         db.session.commit()
 
-        flash("Booked Successfully!")
+        flash("Booked Successfully! Our executive will call you soon.")
         return redirect(url_for("booking"))
 
     blogs = Blog.query.all()
